@@ -36869,7 +36869,7 @@ function savedSummary(ctx, type, state, locale) {
   const tr = translations[locale] ?? Object.values(translations)[0];
   const trLocale = translations[locale] ? locale : Object.keys(translations)[0];
   const live = state.status === "published";
-  const note = !live ? "Saved as a draft. It is not on the website until it is published." : state.hasDraft ? "Saved as a draft on top of the live version. Visitors still see the previous version until it is published." : "Live on the website.";
+  const note = !live ? "Saved as a draft. It is not on the website until it is published; previewUrl shows how it will look (valid 7 days)." : state.hasDraft ? "Saved as a draft on top of the live version. Visitors still see the previous version until it is published; previewUrl shows the new version." : "Live on the website.";
   return {
     id: state.id,
     type,
@@ -36879,6 +36879,8 @@ function savedSummary(ctx, type, state, locale) {
     version: state.version,
     locales: Object.keys(translations),
     liveUrl: live && tr?.slug && trLocale ? publicUrl(ctx.site, type, trLocale, tr.slug, state.doc.kind) : null,
+    // Shows unpublished changes as they will look on the site; give it to the user for review.
+    previewUrl: (!live || state.hasDraft) && trLocale ? state.preview?.urls[trLocale] ?? null : null,
     reviewInDashboard: `${ctx.config.siteUrl}/admin/${ADMIN_PATH[type]}/${state.id}`,
     note
   };
@@ -37545,11 +37547,11 @@ var getSiteOverview = defineTool({
   annotations: READ,
   run: (_args, ctx) => ctx.client.get("/overview")
 });
-var SETTING_KEYS = ["site", "contact", "social", "facts", "voice", "navigation", "seo", "inquiry", "turnstile"];
+var SETTING_KEYS = ["site", "contact", "social", "facts", "voice", "analytics", "navigation", "seo", "inquiry", "turnstile"];
 var getSettings = defineTool({
   name: "get_settings",
   title: "Read site settings",
-  description: "Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. facts: the company fact sheet. voice: brand tone, keywords, words to avoid. navigation: header/footer menus. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.",
+  description: "Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. facts: the company fact sheet. voice: brand tone, keywords, words to avoid. analytics: tracking IDs and cookie consent mode. navigation: header/footer menus. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.",
   requires: ["settings.read"],
   input: { key: external_exports.enum(SETTING_KEYS).describe("Settings group to read.") },
   annotations: READ,
@@ -37558,10 +37560,10 @@ var getSettings = defineTool({
 var updateSiteSettings = defineTool({
   name: "update_site_settings",
   title: "Update site settings",
-  description: 'Change fields of the site, contact, social, facts or voice settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. facts (company fact sheet): foundedYear (number), employees, factoryArea, capacity, annualSales, exportCountries (text), markets and customers (lists of text), certifications [{name, detail}], other [{label, value}]; lists you pass replace the old list. voice: tone, keywords (list), avoid. Use only what the user tells you or gives you: never invent facts, phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
+  description: 'Change fields of the site, contact, social, facts, voice or analytics settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. facts (company fact sheet): foundedYear (number), employees, factoryArea, capacity, annualSales, exportCountries (text), markets and customers (lists of text), certifications [{name, detail}], other [{label, value}]; lists you pass replace the old list. voice: tone, keywords (list), avoid. analytics (sites with the "analytics" capability): ga4 ("G-..."), gtm ("GTM-..."), clarity, metaPixel, linkedin (partner id), cloudflare (Web Analytics token), consent ("banner" = cookie banner, tags wait for consent; "none"), privacyUrl ("/privacy-policy/"); empty string turns a tag off. Custom HTML code cannot be set by AI. Use only what the user tells you or gives you: never invent facts, phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
   requires: ["settings.write"],
   input: {
-    key: external_exports.enum(["site", "contact", "social", "facts", "voice"]).describe('Settings group (facts and voice need a site with the "facts" capability).'),
+    key: external_exports.enum(["site", "contact", "social", "facts", "voice", "analytics"]).describe('Settings group (facts and voice need the "facts" capability, analytics the "analytics" capability).'),
     value: external_exports.record(external_exports.string(), external_exports.unknown()).describe('Fields to change, e.g. {"email": "sales@example.com", "whatsapp": "+86 138 0000 0000"}.'),
     version: versionArg
   },

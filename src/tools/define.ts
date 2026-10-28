@@ -112,6 +112,8 @@ type ContentState = {
   hasDraft: boolean;
   sample?: boolean;
   doc: { kind?: string; translations: Record<string, { slug?: string; name?: string; title?: string }> };
+  /** Signed draft preview links per locale (Agent API 1.3+). */
+  preview?: { urls: Record<string, string>; expiresAt: number };
 };
 
 const ADMIN_PATH: Record<ContentType, string> = { product: 'products', category: 'categories', page: 'pages', post: 'blog' };
@@ -123,9 +125,9 @@ export function savedSummary(ctx: ToolContext, type: ContentType, state: Content
   const trLocale = translations[locale] ? locale : Object.keys(translations)[0];
   const live = state.status === 'published';
   const note = !live
-    ? 'Saved as a draft. It is not on the website until it is published.'
+    ? 'Saved as a draft. It is not on the website until it is published; previewUrl shows how it will look (valid 7 days).'
     : state.hasDraft
-      ? 'Saved as a draft on top of the live version. Visitors still see the previous version until it is published.'
+      ? 'Saved as a draft on top of the live version. Visitors still see the previous version until it is published; previewUrl shows the new version.'
       : 'Live on the website.';
   return {
     id: state.id,
@@ -136,6 +138,8 @@ export function savedSummary(ctx: ToolContext, type: ContentType, state: Content
     version: state.version,
     locales: Object.keys(translations),
     liveUrl: live && tr?.slug && trLocale ? publicUrl(ctx.site, type, trLocale, tr.slug, state.doc.kind) : null,
+    // Shows unpublished changes as they will look on the site; give it to the user for review.
+    previewUrl: (!live || state.hasDraft) && trLocale ? (state.preview?.urls[trLocale] ?? null) : null,
     reviewInDashboard: `${ctx.config.siteUrl}/admin/${ADMIN_PATH[type]}/${state.id}`,
     note,
   };
