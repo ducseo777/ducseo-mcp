@@ -44,5 +44,5 @@ export async function updateContent(
 
 export async function deleteContent(ctx: ToolContext, type: ContentType, id: string) {
   await ctx.client.delete(`${CONTENT_PATH[type]}/${seg(id)}`);
-  return { deleted: id, type, note: 'Moved to trash (soft delete). The site owner can restore it from the dashboard.' };
+  return { deleted: id, type, note: 'Moved to the trash: it is off the website and its URL can be reused. It can still be restored, so tell the user what you deleted.' };
 }

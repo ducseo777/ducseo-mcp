@@ -51,8 +51,9 @@ Only the tools the key's permissions allow are offered.
 | Area | Tools | Permission |
 |---|---|---|
 | Identity and overview | `whoami`, `get_site_overview` | none / `read` |
+| Guidance and checks | `get_content_guidelines` (company facts, brand voice, writing rules), `run_seo_check` | `read` |
 | Site settings | `get_settings`, `update_site_settings`, `update_navigation` | `read` / `settings:write` |
-| Theme | `get_theme`, `list_theme_presets`, `update_theme`, `apply_theme_preset` | `read` / `settings:write` |
+| Theme | `get_theme`, `list_theme_presets`, `update_theme`, `apply_theme_preset`, `import_design_md` (colors and fonts from a third-party DESIGN.md) | `read` / `settings:write` |
 | Categories, products | `list_*`, `get_*`, `create_*`, `update_*`, `delete_*` | `read` / `content:draft` |
 | Pages | `list_block_types`, `list_pages`, `get_page`, `create_page`, `update_page_blocks` | `read` / `content:draft` |
 | Blog | `list_posts`, `get_post`, `create_post`, `update_post` | `read` / `content:draft` |
@@ -67,6 +68,10 @@ Only the tools the key's permissions allow are offered.
 - The key is only ever sent to `DUCSEO_SITE_URL`; logs show its prefix only.
 - `upload_media` reads exactly the one file you name (JPEG, PNG, WebP, GIF, AVIF, PDF), never a directory.
 - All validation and permission checks happen on the site; keys can be revoked in the dashboard at any time.
+
+## License
+
+[MIT](LICENSE)
 
 ## Development
 

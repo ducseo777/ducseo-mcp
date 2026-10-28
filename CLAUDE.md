@@ -4,7 +4,7 @@
 
 ## 1. 定位
 
-> 第一版已实现（v0.1.0，对接 Agent API 1.1）。尚未实现的工具见第 5 节末尾。
+> 已实现（v0.2.0，对接 Agent API 1.2）。开源许可证 MIT。
 
 - 外贸公司在自己的 AI 工具（Claude Desktop、Claude Code、ChatGPT/Codex、Cursor、Grok Build 等）里添加这个 MCP，填上**站点地址**和 **API Key**（在网站后台 “AI Agent” 菜单创建），AI 就能管理网站内容。
 - 本项目只是 Ducseo 站点 **Agent API**（`/api/agent/v1/*`）的客户端：把 API 包装成 AI 好用的 MCP 工具。**不含业务逻辑、不直连数据库**，所有校验和权限以站点为准。
@@ -59,7 +59,8 @@
 - 发布：`publish`、`list_revisions`、`revert_revision`
 - 询盘：`list_inquiries`、`get_inquiry`
 - 另外实现了：`get_settings`（读设置，改设置前先读）、`list_not_found`（404 记录，迁移旧站时配合 `upsert_redirect`）。
-- **尚未实现**（主项目还没有对应接口）：`get_content_guidelines`（等公司事实库）、`run_seo_check`、`import_design_md`（P1）。主项目补上接口和能力标记后再加。
+- `get_content_guidelines` 读主项目 `GET /guidelines`（公司事实库、品牌语气、写作和 SEO 规则，规则以站点为准）；`run_seo_check` 读 `GET /seo/check`（只查数据库内容，不抓网页）。
+- `import_design_md` 只在 MCP 端实现：读取本地 .md 文件，连同映射规则（主项目 DESIGN.md 第 11 节，改规则时两边同步）、可选设计和字体、当前主题一起交给 AI；由 AI 判断映射，用户确认后再调 `apply_theme_preset` / `update_theme`。网站端不解析第三方 Markdown。
 
 实现约定（已落地）：
 

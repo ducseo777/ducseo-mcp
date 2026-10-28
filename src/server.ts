@@ -6,6 +6,7 @@ import type { Config } from './config';
 import { permissionsOf, type Whoami } from './site';
 import { ToolError, type ToolContext, type ToolDef } from './tools/define';
 import { categoryTools } from './tools/categories';
+import { guidanceTools } from './tools/guidance';
 import { inquiryTools } from './tools/inquiries';
 import { mediaTools } from './tools/media';
 import { pageTools } from './tools/pages';
@@ -21,6 +22,7 @@ export const VERSION = version;
 
 export const ALL_TOOLS: ToolDef[] = [
   ...siteTools,
+  ...guidanceTools,
   ...themeTools,
   ...categoryTools,
   ...productTools,
@@ -48,6 +50,7 @@ export function instructions(site: Whoami, workingLocale: string): string {
     '',
     'How to work:',
     '- Start with whoami to confirm the site and permissions, then get_site_overview to see what exists and what is missing.',
+    '- Before writing copy, read get_content_guidelines: the company fact sheet, brand voice, keywords and writing rules for this site.',
     '- Read before you write: get_* the item first, change only what the user asked, and keep existing content.',
     "- Never invent company facts: founding year, factory size, staff, capacity, certifications, customers, export countries, prices or specs come only from the user's material. If something is missing, ask; do not guess.",
     '- Write for overseas B2B buyers (importers, distributors, engineers) in natural target-language wording, not a literal translation from Chinese. Keep numbers, units, model numbers and standards exact.',

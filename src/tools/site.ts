@@ -42,13 +42,13 @@ export const getSiteOverview = defineTool({
   run: (_args, ctx) => ctx.client.get('/overview'),
 });
 
-const SETTING_KEYS = ['site', 'contact', 'social', 'navigation', 'seo', 'inquiry', 'turnstile'] as const;
+const SETTING_KEYS = ['site', 'contact', 'social', 'facts', 'voice', 'navigation', 'seo', 'inquiry', 'turnstile'] as const;
 
 export const getSettings = defineTool({
   name: 'get_settings',
   title: 'Read site settings',
   description:
-    'Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. navigation: header/footer menus. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.',
+    'Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. facts: the company fact sheet. voice: brand tone, keywords, words to avoid. navigation: header/footer menus. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.',
   requires: ['settings.read'],
   input: { key: z.enum(SETTING_KEYS).describe('Settings group to read.') },
   annotations: READ,
@@ -59,11 +59,12 @@ export const updateSiteSettings = defineTool({
   name: 'update_site_settings',
   title: 'Update site settings',
   description:
-    'Change fields of the site, contact or social settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. ' +
-    'Use facts from the user only: never invent phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
+    'Change fields of the site, contact, social, facts or voice settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. ' +
+    'facts (company fact sheet): foundedYear (number), employees, factoryArea, capacity, annualSales, exportCountries (text), markets and customers (lists of text), certifications [{name, detail}], other [{label, value}]; lists you pass replace the old list. voice: tone, keywords (list), avoid. ' +
+    'Use only what the user tells you or gives you: never invent facts, phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
   requires: ['settings.write'],
   input: {
-    key: z.enum(['site', 'contact', 'social']).describe('Settings group.'),
+    key: z.enum(['site', 'contact', 'social', 'facts', 'voice']).describe('Settings group (facts and voice need a site with the "facts" capability).'),
     value: z.record(z.string(), z.unknown()).describe('Fields to change, e.g. {"email": "sales@example.com", "whatsapp": "+86 138 0000 0000"}.'),
     version: versionArg,
   },

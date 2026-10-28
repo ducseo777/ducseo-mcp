@@ -51,8 +51,9 @@
 | 领域 | 工具 | 需要的权限 |
 |---|---|---|
 | 身份与概览 | `whoami`、`get_site_overview` | 无 / `read` |
+| 写作指引与检查 | `get_content_guidelines`（公司事实库、品牌语气、写作规则）、`run_seo_check` | `read` |
 | 站点设置 | `get_settings`、`update_site_settings`、`update_navigation` | `read` / `settings:write` |
-| 主题 | `get_theme`、`list_theme_presets`、`update_theme`、`apply_theme_preset` | `read` / `settings:write` |
+| 主题 | `get_theme`、`list_theme_presets`、`update_theme`、`apply_theme_preset`、`import_design_md`（按第三方 DESIGN.md 调整配色和字体） | `read` / `settings:write` |
 | 分类、产品 | `list_*`、`get_*`、`create_*`、`update_*`、`delete_*` | `read` / `content:draft` |
 | 页面 | `list_block_types`、`list_pages`、`get_page`、`create_page`、`update_page_blocks` | `read` / `content:draft` |
 | 博客 | `list_posts`、`get_post`、`create_post`、`update_post` | `read` / `content:draft` |
@@ -67,6 +68,10 @@
 - Key 只发送到 `DUCSEO_SITE_URL` 这一个网站，日志里只显示前缀。
 - `upload_media` 只读取你指定的单个文件（JPEG、PNG、WebP、GIF、AVIF、PDF），不读目录。
 - 所有校验和权限检查都在网站端完成；Key 可以在后台随时吊销。
+
+## 许可证
+
+[MIT](LICENSE)
 
 ## 开发
 

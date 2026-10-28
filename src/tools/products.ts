@@ -114,7 +114,7 @@ export const updateProduct = defineTool({
 export const deleteProduct = defineTool({
   name: 'delete_product',
   title: 'Delete product',
-  description: 'Move a product to the trash (it disappears from the website; restorable from the dashboard). Ask the user before deleting.',
+  description: 'Move a product to the trash: it disappears from the website and its URL becomes free. Ask the user before deleting.',
   requires: ['content.write'],
   input: { id: idArg('product') },
   annotations: DESTRUCTIVE,

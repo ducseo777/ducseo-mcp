@@ -2986,7 +2986,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve2.call(this, root, ref);
+      let _sch = resolve3.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a3 = root.localRefs) === null || _a3 === void 0 ? void 0 : _a3[ref];
         const { schemaId } = this.opts;
@@ -3013,7 +3013,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve2(root, ref) {
+    function resolve3(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -3877,7 +3877,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve2(baseURI, relativeURI, options) {
+    function resolve3(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const {
         parsed: baseParsed,
@@ -4268,7 +4268,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve: resolve2,
+      resolve: resolve3,
       resolveComponent,
       equal,
       serialize,
@@ -12327,7 +12327,7 @@ var recursive = /* @__PURE__ */ new WeakMap();
 var NONE = 0;
 var ASSUMED = 1;
 var PROVEN = 2;
-function isRecursive(inst, stack, resolve2) {
+function isRecursive(inst, stack, resolve3) {
   const cached2 = recursive.get(inst);
   if (cached2 !== void 0)
     return cached2 ? PROVEN : NONE;
@@ -12337,7 +12337,7 @@ function isRecursive(inst, stack, resolve2) {
   let result = NONE;
   const check2 = (child) => {
     if (result !== PROVEN && child?._zod) {
-      const answer = isRecursive(child, stack, resolve2);
+      const answer = isRecursive(child, stack, resolve3);
       if (answer > result)
         result = answer;
     }
@@ -12348,7 +12348,7 @@ function isRecursive(inst, stack, resolve2) {
       const desc = Object.getOwnPropertyDescriptor(sh, key);
       if (spread && !desc.enumerable)
         continue;
-      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve2) : NONE;
+      const child = desc.get ? ASSUMED : desc.value?._zod ? isRecursive(desc.value, stack, resolve3) : NONE;
       if (child > answer)
         answer = child;
     }
@@ -12412,7 +12412,7 @@ function isRecursive(inst, stack, resolve2) {
       break;
     // `$ZodLazy` caches its inner on the def, so a resolved edge is followed exactly
     case "lazy": {
-      const inner = def._cachedInner ?? (resolve2 ? inst._zod.innerType : void 0);
+      const inner = def._cachedInner ?? (resolve3 ? inst._zod.innerType : void 0);
       merge2(inner ? isRecursive(inner, stack, false) : ASSUMED);
       break;
     }
@@ -28601,12 +28601,12 @@ var StdioServerTransport = class {
     this.onclose?.();
   }
   send(message) {
-    return new Promise((resolve2) => {
+    return new Promise((resolve3) => {
       const json2 = serializeMessage(message);
       if (this._stdout.write(json2)) {
-        resolve2();
+        resolve3();
       } else {
-        this._stdout.once("drain", resolve2);
+        this._stdout.once("drain", resolve3);
       }
     });
   }
@@ -34724,7 +34724,7 @@ var Protocol = class {
           return;
         }
         const pollInterval = task2.pollInterval ?? this._options?.defaultTaskPollInterval ?? 1e3;
-        await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
+        await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
         options?.signal?.throwIfAborted();
       }
     } catch (error62) {
@@ -34741,7 +34741,7 @@ var Protocol = class {
    */
   request(request, resultSchema, options) {
     const { relatedRequestId, resumptionToken, onresumptiontoken, task, relatedTask } = options ?? {};
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       const earlyReject = (error62) => {
         reject(error62);
       };
@@ -34819,7 +34819,7 @@ var Protocol = class {
           if (!parseResult.success) {
             reject(parseResult.error);
           } else {
-            resolve2(parseResult.data);
+            resolve3(parseResult.data);
           }
         } catch (error62) {
           reject(error62);
@@ -35081,12 +35081,12 @@ var Protocol = class {
       }
     } catch {
     }
-    return new Promise((resolve2, reject) => {
+    return new Promise((resolve3, reject) => {
       if (signal.aborted) {
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
         return;
       }
-      const timeoutId = setTimeout(resolve2, interval);
+      const timeoutId = setTimeout(resolve3, interval);
       signal.addEventListener("abort", () => {
         clearTimeout(timeoutId);
         reject(new McpError(ErrorCode.InvalidRequest, "Request cancelled"));
@@ -36226,7 +36226,7 @@ var McpServer = class {
     let task = createTaskResult.task;
     const pollInterval = task.pollInterval ?? 5e3;
     while (task.status !== "completed" && task.status !== "failed" && task.status !== "cancelled") {
-      await new Promise((resolve2) => setTimeout(resolve2, pollInterval));
+      await new Promise((resolve3) => setTimeout(resolve3, pollInterval));
       const updatedTask = await extra.taskStore.getTask(taskId);
       if (!updatedTask) {
         throw new McpError(ErrorCode.InternalError, `Task ${taskId} not found during polling`);
@@ -36795,7 +36795,7 @@ var EMPTY_COMPLETION_RESULT = {
 };
 
 // package.json
-var version2 = "0.1.0";
+var version2 = "0.2.0";
 
 // src/site.ts
 var API_MAJOR = 1;
@@ -36906,7 +36906,7 @@ async function updateContent(ctx, type, id, input2) {
 }
 async function deleteContent(ctx, type, id) {
   await ctx.client.delete(`${CONTENT_PATH[type]}/${seg(id)}`);
-  return { deleted: id, type, note: "Moved to trash (soft delete). The site owner can restore it from the dashboard." };
+  return { deleted: id, type, note: "Moved to the trash: it is off the website and its URL can be reused. It can still be restored, so tell the user what you deleted." };
 }
 
 // src/tools/categories.ts
@@ -36981,6 +36981,76 @@ var deleteCategory = defineTool({
 });
 var categoryTools = [listCategories, getCategory, createCategory, updateCategory, deleteCategory];
 
+// src/tools/guidance.ts
+import { readFile, stat } from "fs/promises";
+import { homedir } from "os";
+import { basename, extname, resolve } from "path";
+var getContentGuidelines = defineTool({
+  name: "get_content_guidelines",
+  title: "Writing guidelines and company facts",
+  description: "Read before writing any copy: the company fact sheet (the only facts you may state), which facts are missing, brand tone, main keywords, words to avoid, writing rules and SEO length rules. If facts you need are missing, ask the user instead of guessing.",
+  requires: ["content.read"],
+  capability: "guidelines",
+  input: {},
+  annotations: READ,
+  run: (_args, ctx) => ctx.client.get("/guidelines")
+});
+var runSeoCheck = defineTool({
+  name: "run_seo_check",
+  title: "SEO check",
+  description: "Check the published content for SEO problems: missing domain or home page, blocked AI crawlers, SEO titles and descriptions (missing, length, duplicates), thin pages, product images and alt text, products without category, empty categories, broken internal links and untranslated content. Errors first; each issue says what to do and which item it concerns. Fix content issues with the update tools, then run it again.",
+  requires: ["content.read"],
+  capability: "seo-check",
+  input: {},
+  annotations: READ,
+  run: (_args, ctx) => ctx.client.get("/seo/check")
+});
+var IMPORT_RULES = [
+  "Pick the closest of the site designs (industrial, engineering, living, oem) from the overall character: industry, density, corner radius, serif or sans-serif.",
+  "colors.primary = the brand's primary or main call-to-action color.",
+  "colors.accent = the secondary highlight color.",
+  "colors.surfaceDark = the background of dark sections.",
+  "Fonts: the closest heading and body fonts from the chosen design's font list. Commercial fonts are never used; pick the nearest free one from the list.",
+  "Ignore neutrals, radii, shadows, component details, gradients and decorations: the design decides those.",
+  "Import values only: never copy the other brand's name, logo, illustrations or images.",
+  "Low-contrast colors are corrected automatically when saved; tell the user what was changed (the `notes` in the result)."
+];
+var MAX_BYTES = 256 * 1024;
+var importDesignMd = defineTool({
+  name: "import_design_md",
+  title: "Import a DESIGN.md",
+  description: "Read a third-party DESIGN.md file on this computer (e.g. from the awesome-design-md collection) and get the rules for turning it into this site's theme, the available designs and fonts, and the current theme. Then decide the mapping yourself, show the user your choice (design, three colors, two fonts) and, once they agree, apply it with apply_theme_preset and update_theme.",
+  requires: ["settings.read", "settings.write"],
+  capability: "theme",
+  input: { path: external_exports.string().describe("Absolute path of the .md file on this computer.") },
+  annotations: READ,
+  run: async ({ path }, ctx) => {
+    const full = resolve(path.startsWith("~") ? homedir() + path.slice(1) : path);
+    if (![".md", ".markdown", ".txt"].includes(extname(full).toLowerCase())) {
+      throw new ToolError(`"${basename(full)}" is not a Markdown file. Pass the path of a DESIGN.md (.md) file.`);
+    }
+    let size;
+    try {
+      const info = await stat(full);
+      if (!info.isFile()) throw new Error("not a file");
+      size = info.size;
+    } catch {
+      throw new ToolError(`File not found: ${full}. Use an absolute path to a file on this computer.`);
+    }
+    if (size > MAX_BYTES) throw new ToolError(`${basename(full)} is ${Math.round(size / 1024)} KB; a design file should be well under ${MAX_BYTES / 1024} KB.`);
+    const [designMd, options, current] = await Promise.all([readFile(full, "utf8"), ctx.client.get("/theme/presets"), ctx.client.get("/theme")]);
+    return {
+      file: basename(full),
+      rules: IMPORT_RULES,
+      designsAndFonts: options,
+      currentTheme: current,
+      designMd,
+      nextSteps: "Propose: design id, primary/accent/surfaceDark hex colors, heading and body font ids (from that design). After the user agrees: apply_theme_preset (if the design changes), then update_theme with colors and fonts."
+    };
+  }
+});
+var guidanceTools = [getContentGuidelines, runSeoCheck, importDesignMd];
+
 // src/tools/inquiries.ts
 var PRIVACY = "Inquiries contain buyers' personal data: use them only for what the user asked, and do not copy them into other services.";
 var listInquiries = defineTool({
@@ -37013,9 +37083,9 @@ var getInquiry = defineTool({
 var inquiryTools = [listInquiries, getInquiry];
 
 // src/tools/media.ts
-import { readFile, stat } from "fs/promises";
-import { homedir } from "os";
-import { basename, extname, resolve } from "path";
+import { readFile as readFile2, stat as stat2 } from "fs/promises";
+import { homedir as homedir2 } from "os";
+import { basename as basename2, extname as extname2, resolve as resolve2 } from "path";
 var MB = 1024 * 1024;
 var TYPES = {
   ".jpg": { mime: "image/jpeg", max: 10 * MB },
@@ -37031,20 +37101,20 @@ function absolute(item, siteUrl) {
 }
 var altArg = external_exports.record(external_exports.string(), external_exports.string()).optional().describe('Alt text per language, e.g. {"en": "316 stainless steel flanged ball valve, DN50"}. Describe what is in the picture with the product name; no "image of".');
 async function readUploadFile(path) {
-  const full = resolve(path.startsWith("~") ? homedir() + path.slice(1) : path);
-  const type = TYPES[extname(full).toLowerCase()];
-  if (!type) throw new ToolError(`"${basename(full)}" is not an accepted file type. Upload JPEG, PNG, WebP, GIF, AVIF or PDF (SVG is not accepted).`);
+  const full = resolve2(path.startsWith("~") ? homedir2() + path.slice(1) : path);
+  const type = TYPES[extname2(full).toLowerCase()];
+  if (!type) throw new ToolError(`"${basename2(full)}" is not an accepted file type. Upload JPEG, PNG, WebP, GIF, AVIF or PDF (SVG is not accepted).`);
   let info;
   try {
-    info = await stat(full);
+    info = await stat2(full);
   } catch {
     throw new ToolError(`File not found: ${full}. Use an absolute path to a file on this computer.`);
   }
   if (!info.isFile()) throw new ToolError(`${full} is not a file. Upload files one at a time.`);
   if (info.size > type.max) {
-    throw new ToolError(`${basename(full)} is ${(info.size / MB).toFixed(1)} MB; the limit for this type is ${type.max / MB} MB. Compress or resize it first.`);
+    throw new ToolError(`${basename2(full)} is ${(info.size / MB).toFixed(1)} MB; the limit for this type is ${type.max / MB} MB. Compress or resize it first.`);
   }
-  return { name: basename(full), mime: type.mime, bytes: await readFile(full) };
+  return { name: basename2(full), mime: type.mime, bytes: await readFile2(full) };
 }
 var uploadMedia = defineTool({
   name: "upload_media",
@@ -37346,7 +37416,7 @@ var updateProduct = defineTool({
 var deleteProduct = defineTool({
   name: "delete_product",
   title: "Delete product",
-  description: "Move a product to the trash (it disappears from the website; restorable from the dashboard). Ask the user before deleting.",
+  description: "Move a product to the trash: it disappears from the website and its URL becomes free. Ask the user before deleting.",
   requires: ["content.write"],
   input: { id: idArg("product") },
   annotations: DESTRUCTIVE,
@@ -37475,11 +37545,11 @@ var getSiteOverview = defineTool({
   annotations: READ,
   run: (_args, ctx) => ctx.client.get("/overview")
 });
-var SETTING_KEYS = ["site", "contact", "social", "navigation", "seo", "inquiry", "turnstile"];
+var SETTING_KEYS = ["site", "contact", "social", "facts", "voice", "navigation", "seo", "inquiry", "turnstile"];
 var getSettings = defineTool({
   name: "get_settings",
   title: "Read site settings",
-  description: "Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. navigation: header/footer menus. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.",
+  description: "Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. facts: the company fact sheet. voice: brand tone, keywords, words to avoid. navigation: header/footer menus. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.",
   requires: ["settings.read"],
   input: { key: external_exports.enum(SETTING_KEYS).describe("Settings group to read.") },
   annotations: READ,
@@ -37488,10 +37558,10 @@ var getSettings = defineTool({
 var updateSiteSettings = defineTool({
   name: "update_site_settings",
   title: "Update site settings",
-  description: 'Change fields of the site, contact or social settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. Use facts from the user only: never invent phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
+  description: 'Change fields of the site, contact, social, facts or voice settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. facts (company fact sheet): foundedYear (number), employees, factoryArea, capacity, annualSales, exportCountries (text), markets and customers (lists of text), certifications [{name, detail}], other [{label, value}]; lists you pass replace the old list. voice: tone, keywords (list), avoid. Use only what the user tells you or gives you: never invent facts, phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
   requires: ["settings.write"],
   input: {
-    key: external_exports.enum(["site", "contact", "social"]).describe("Settings group."),
+    key: external_exports.enum(["site", "contact", "social", "facts", "voice"]).describe('Settings group (facts and voice need a site with the "facts" capability).'),
     value: external_exports.record(external_exports.string(), external_exports.unknown()).describe('Fields to change, e.g. {"email": "sales@example.com", "whatsapp": "+86 138 0000 0000"}.'),
     version: versionArg
   },
@@ -37619,6 +37689,7 @@ var translationTools = [listMissingTranslations, upsertTranslation];
 var VERSION = version2;
 var ALL_TOOLS = [
   ...siteTools,
+  ...guidanceTools,
   ...themeTools,
   ...categoryTools,
   ...productTools,
@@ -37643,6 +37714,7 @@ function instructions(site, workingLocale) {
     "",
     "How to work:",
     "- Start with whoami to confirm the site and permissions, then get_site_overview to see what exists and what is missing.",
+    "- Before writing copy, read get_content_guidelines: the company fact sheet, brand voice, keywords and writing rules for this site.",
     "- Read before you write: get_* the item first, change only what the user asked, and keep existing content.",
     "- Never invent company facts: founding year, factory size, staff, capacity, certifications, customers, export countries, prices or specs come only from the user's material. If something is missing, ask; do not guess.",
     "- Write for overseas B2B buyers (importers, distributors, engineers) in natural target-language wording, not a literal translation from Chinese. Keep numbers, units, model numbers and standards exact.",

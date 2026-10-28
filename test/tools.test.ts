@@ -8,6 +8,7 @@ import { createPost } from '../src/tools/posts';
 import { upsertTranslation } from '../src/tools/translations';
 import { listMedia, readUploadFile, uploadMedia } from '../src/tools/media';
 import { slugify } from '../src/tools/define';
+import { importDesignMd } from '../src/tools/guidance';
 import { context, mockFetch, state, whoami } from './helpers';
 
 const names = (scopes: string[], caps?: string[]) => selectTools(whoami(scopes, caps)).map((t) => t.name);
@@ -41,7 +42,13 @@ describe('tool selection', () => {
     expect(old).not.toContain('get_site_overview');
     expect(old).not.toContain('list_missing_translations');
     expect(old).not.toContain('list_pages');
+    expect(old).not.toContain('get_content_guidelines');
+    expect(old).not.toContain('run_seo_check');
     expect(old).toContain('list_products');
+    expect(names(['read'], ['guidelines', 'seo-check'])).toEqual(expect.arrayContaining(['get_content_guidelines', 'run_seo_check']));
+    // Importing a design file is only useful to a key that can change the theme.
+    expect(names(['read'])).not.toContain('import_design_md');
+    expect(names(['read', 'settings:write'])).toContain('import_design_md');
   });
 
   it('tells the agent whether it may publish', () => {
@@ -143,6 +150,29 @@ describe('media', () => {
     expect(m.calls[0]!.url).toContain('missingAlt=1');
     const old = await runTool(listMedia, { missingAlt: true }, context(m.fetch, whoami(['read'], ['media'])));
     expect(text(old)).toContain('cannot filter by missing alt');
+  });
+});
+
+describe('import_design_md', () => {
+  it('returns the file with the mapping rules, the designs and the current theme', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ducseo-'));
+    const file = join(dir, 'DESIGN.md');
+    await writeFile(file, '# Acme\n\nPrimary: #635bff\n');
+    const m = mockFetch({ json: { designs: [{ id: 'industrial' }] } }, { json: { theme: { design: 'oem' }, version: 3 } });
+    const res = await runTool(importDesignMd, { path: file }, context(m.fetch));
+    const out = JSON.parse(text(res));
+    expect(out.designMd).toContain('#635bff');
+    expect(out.rules.join(' ')).toContain('never copy');
+    expect(out.designsAndFonts.designs[0].id).toBe('industrial');
+    expect(out.currentTheme.version).toBe(3);
+    expect(m.calls.map((c) => c.url)).toEqual(['https://www.example.com/api/agent/v1/theme/presets', 'https://www.example.com/api/agent/v1/theme']);
+  });
+
+  it('only reads Markdown files', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ducseo-'));
+    await writeFile(join(dir, 'secrets.env'), 'X=1');
+    const res = await runTool(importDesignMd, { path: join(dir, 'secrets.env') }, context(mockFetch().fetch));
+    expect(text(res)).toContain('not a Markdown file');
   });
 });
 
