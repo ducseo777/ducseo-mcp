@@ -36906,7 +36906,7 @@ async function updateContent(ctx, type, id, input2) {
 }
 async function deleteContent(ctx, type, id) {
   await ctx.client.delete(`${CONTENT_PATH[type]}/${seg(id)}`);
-  return { deleted: id, type, note: "Moved to the trash: it is off the website and its URL can be reused. It can still be restored, so tell the user what you deleted." };
+  return { deleted: id, type, note: "Moved to the trash: it is off the website and its URL can be reused. The site owner can restore it in the dashboard under System \u2192 Trash; tell the user what you deleted." };
 }
 
 // src/tools/categories.ts
