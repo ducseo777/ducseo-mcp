@@ -10,7 +10,7 @@ export const publish = defineTool({
   name: 'publish',
   title: 'Publish',
   description:
-    'Put a product, category, page or post (with its pending draft changes) live on the website. Only when the user asked to publish. It needs a translation in the site default language.',
+    'Put a product, category, page or post (with its pending draft changes) live on the website. Only when the user asked to publish. It needs a translation in the site default language. Publishing an item whose content did not change keeps its last-modified date.',
   requires: ['content.publish'],
   input: { type: contentType, id: z.string().describe('Id of the item.'), version: versionArg },
   annotations: WRITE,

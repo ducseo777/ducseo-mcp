@@ -36795,7 +36795,7 @@ var EMPTY_COMPLETION_RESULT = {
 };
 
 // package.json
-var version2 = "0.2.0";
+var version2 = "0.2.1";
 
 // src/site.ts
 var API_MAJOR = 1;
@@ -37431,7 +37431,7 @@ var contentType = external_exports.enum(["product", "category", "page", "post"])
 var publish = defineTool({
   name: "publish",
   title: "Publish",
-  description: "Put a product, category, page or post (with its pending draft changes) live on the website. Only when the user asked to publish. It needs a translation in the site default language.",
+  description: "Put a product, category, page or post (with its pending draft changes) live on the website. Only when the user asked to publish. It needs a translation in the site default language. Publishing an item whose content did not change keeps its last-modified date.",
   requires: ["content.publish"],
   input: { type: contentType, id: external_exports.string().describe("Id of the item."), version: versionArg },
   annotations: WRITE,
@@ -37722,6 +37722,7 @@ function instructions(site, workingLocale) {
     "- Write for overseas B2B buyers (importers, distributors, engineers) in natural target-language wording, not a literal translation from Chinese. Keep numbers, units, model numbers and standards exact.",
     "- SEO: one main keyword per page, used naturally; meta titles 30\u201360 characters, meta descriptions 120\u2013160. Do not stuff keywords.",
     "- Pages are built from blocks: call list_block_types before creating or editing blocks.",
+    `- A page's last-modified date (sitemap, "Updated" on posts) moves only when that language's content really changes. Do not republish unchanged items or make cosmetic edits to look fresh; changing block styles or order does not count as an update.`,
     "- Upload images with upload_media (local files) and always give alt text; then use the returned media id.",
     canPublish ? "- Changes are saved as drafts. Publish only when the user explicitly asks; otherwise tell them the change is waiting for review." : "- This key cannot publish: everything you save is a draft for the site owner to review and publish in the dashboard.",
     "- After writing, give the user the reviewInDashboard link (and liveUrl when live) from the tool result.",

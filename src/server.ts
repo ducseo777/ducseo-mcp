@@ -56,6 +56,7 @@ export function instructions(site: Whoami, workingLocale: string): string {
     '- Write for overseas B2B buyers (importers, distributors, engineers) in natural target-language wording, not a literal translation from Chinese. Keep numbers, units, model numbers and standards exact.',
     '- SEO: one main keyword per page, used naturally; meta titles 30–60 characters, meta descriptions 120–160. Do not stuff keywords.',
     '- Pages are built from blocks: call list_block_types before creating or editing blocks.',
+    "- A page's last-modified date (sitemap, \"Updated\" on posts) moves only when that language's content really changes. Do not republish unchanged items or make cosmetic edits to look fresh; changing block styles or order does not count as an update.",
     '- Upload images with upload_media (local files) and always give alt text; then use the returned media id.',
     canPublish
       ? '- Changes are saved as drafts. Publish only when the user explicitly asks; otherwise tell them the change is waiting for review.'
