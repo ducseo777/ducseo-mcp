@@ -39,6 +39,7 @@ JSON configuration (Claude Desktop, Cursor, WorkBuddy):
 | `DUCSEO_SITE_URL` | yes | Site address, e.g. `https://www.example.com` |
 | `DUCSEO_API_KEY` | yes | API key from the dashboard (starts with `dsk_`) |
 | `DUCSEO_LOCALE` | no | Site language the AI works in by default; the site default if empty |
+| `DUCSEO_PROXY` | no | HTTP proxy, e.g. `http://127.0.0.1:7890` (your proxy app's HTTP port; SOCKS is not supported). Set it when calls keep failing with `network_error`, e.g. in mainland China. Falls back to `HTTPS_PROXY` / `ALL_PROXY` |
 
 For several sites, add one MCP server per site with distinct names, e.g. `ducseo-abc`, `ducseo-xyz`.
 
@@ -55,7 +56,7 @@ Only the tools the key's permissions allow are offered.
 | Site settings | `get_settings`, `update_site_settings`, `update_navigation` | `read` / `settings:write` |
 | Theme | `get_theme`, `list_theme_presets`, `update_theme`, `apply_theme_preset`, `import_design_md` (colors and fonts from a third-party DESIGN.md) | `read` / `settings:write` |
 | Categories, products | `list_*`, `get_*`, `create_*`, `update_*`, `delete_*` | `read` / `content:draft` |
-| Pages | `list_block_types`, `list_pages`, `get_page`, `create_page`, `update_page_blocks` | `read` / `content:draft` |
+| Pages | `list_block_types`, `list_pages`, `get_page`, `create_page`, `update_page_blocks`, `update_page_block`, `add_page_block`, `remove_page_block` | `read` / `content:draft` |
 | Blog | `list_posts`, `get_post`, `create_post`, `update_post` | `read` / `content:draft` |
 | Translation | `list_missing_translations`, `upsert_translation` | `read` / `content:draft` |
 | Media | `upload_media` (local file), `upload_media_from_url`, `list_media`, `update_media_alt` | `media:write` / `read` |

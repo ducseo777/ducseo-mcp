@@ -15,7 +15,8 @@ export async function createContent(
 ) {
   const locale = ctx.locale(input.locale);
   const tr = defined(input.tr);
-  if (!tr.slug) tr.slug = slugify(String(tr[input.nameField] ?? ''));
+  // The home page lives at "/": its slug is never shown, so any title (Chinese too) is fine.
+  if (!tr.slug) tr.slug = type === 'page' && input.shared.kind === 'home' ? 'home' : slugify(String(tr[input.nameField] ?? ''));
   const state = await ctx.client.post<State>(CONTENT_PATH[type], {
     doc: { ...defined(input.shared), translations: { [locale]: tr } },
     publish: input.publish,

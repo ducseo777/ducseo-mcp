@@ -48,7 +48,7 @@ export const getSettings = defineTool({
   name: 'get_settings',
   title: 'Read site settings',
   description:
-    'Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. facts: the company fact sheet. voice: brand tone, keywords, words to avoid. analytics: tracking IDs and cookie consent mode. navigation: header/footer menus. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.',
+    'Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids, logoShowName, businessType. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. facts: the company fact sheet. voice: brand tone, keywords, words to avoid. analytics: tracking IDs and cookie consent mode. navigation: header/footer menus, header button (cta), footer products column. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.',
   requires: ['settings.read'],
   input: { key: z.enum(SETTING_KEYS).describe('Settings group to read.') },
   annotations: READ,
@@ -60,7 +60,8 @@ export const updateSiteSettings = defineTool({
   title: 'Update site settings',
   description:
     'Change fields of the site, contact, social, facts, voice or analytics settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. ' +
-    'facts (company fact sheet): foundedYear (number), employees, factoryArea, capacity, annualSales, exportCountries (text), markets and customers (lists of text), certifications [{name, detail}], other [{label, value}]; lists you pass replace the old list. voice: tone, keywords (list), avoid. ' +
+    'site (sites with the "business-type" capability): businessType "manufacturer" | "trading" | "service" (service = no product catalog: no Products menu item or product checklist, no factory facts asked); logoShowName true shows the site name as text next to an icon-only logo. ' +
+    'facts (company fact sheet): foundedYear (number), employees, factoryArea, capacity, annualSales, exportCountries (text), markets and customers (lists of text), certifications [{name, detail}], other [{label, value}] for anything else (for a service business: services, prices, team, track record); lists you pass replace the old list. Facts may be written in any language. voice: tone, keywords (list), avoid. ' +
     'analytics (sites with the "analytics" capability): ga4 ("G-..."), gtm ("GTM-..."), clarity, metaPixel, linkedin (partner id), cloudflare (Web Analytics token), consent ("banner" = cookie banner, tags wait for consent; "none"), privacyUrl ("/privacy-policy/"); empty string turns a tag off. Custom HTML code cannot be set by AI. ' +
     'Use only what the user tells you or gives you: never invent facts, phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
   requires: ['settings.write'],
@@ -84,15 +85,34 @@ export const updateNavigation = defineTool({
   name: 'update_navigation',
   title: 'Update menus',
   description:
-    'Replace the header menu and/or the footer "Company" links. Pass the full list for each menu you change (order = display order). An empty header list restores the automatic menu (Home, Products, Blog once posts exist, Contact); an empty footer list mirrors the header. The Products item gets the category dropdown automatically. Read the current menus with get_settings key="navigation" first.',
+    'Replace the header menu and/or the footer "Company" links, and set the header button and the footer products column. Pass the full list for each menu you change (order = display order). An empty header list restores the automatic menu (Home, Products unless the site is a service business, Blog once posts exist, Contact); an empty footer list mirrors the header. The Products item gets the category dropdown automatically. ' +
+    'cta and footerProducts need the "header-cta" capability (see whoami); older sites ignore them. Read the current settings with get_settings key="navigation" first.',
   requires: ['settings.write'],
   input: {
     header: z.array(navItem).max(10).optional().describe('Header menu, at most 10 items.'),
     footer: z.array(navItem).max(12).optional().describe('Footer links, at most 12 items.'),
+    cta: z
+      .object({
+        show: z.boolean().describe('false hides the button.'),
+        label: z.record(z.string(), z.string()).optional().describe('Button text per language, e.g. {"en": "Free consultation", "zh-CN": "免费咨询"}. Empty = the built-in "Request a Quote".'),
+        href: z.string().optional().describe('Target: a site path such as "/pricing/" or an https:// URL. Empty = the contact page.'),
+      })
+      .optional()
+      .describe('The highlighted button at the right of the header. Service businesses usually want a label such as "Free consultation" instead of "Request a Quote".'),
+    footerProducts: z.boolean().optional().describe('false hides the footer Products column (it is also hidden while no category is published).'),
     version: versionArg,
   },
   annotations: WRITE,
-  run: ({ header, footer, version }, ctx) => ctx.client.patch('/settings/navigation', { value: { ...(header && { header }), ...(footer && { footer }) }, version }),
+  run: ({ header, footer, cta, footerProducts, version }, ctx) =>
+    ctx.client.patch('/settings/navigation', {
+      value: {
+        ...(header && { header }),
+        ...(footer && { footer }),
+        ...(cta && { cta: { show: cta.show, label: cta.label ?? {}, href: cta.href ?? '' } }),
+        ...(footerProducts !== undefined && { footerProducts }),
+      },
+      version,
+    }),
 });
 
 export const siteTools = [whoami, getSiteOverview, getSettings, updateSiteSettings, updateNavigation];

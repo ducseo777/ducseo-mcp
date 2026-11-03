@@ -1,12 +1,16 @@
 // Configuration from the AI tool's MCP settings (CLAUDE.md §3). Errors are bilingual because the
 // person reading them is usually setting this up by hand.
 
+import { proxyFor } from './proxy';
+
 export type Config = {
   /** Site origin, e.g. https://www.example.com (no path, no trailing slash). */
   siteUrl: string;
   apiKey: string;
   /** Language the agent works in by default; undefined = the site's default language. */
   locale?: string;
+  /** HTTP proxy for requests to the site (DUCSEO_PROXY, HTTPS_PROXY …); see proxy.ts. */
+  proxy?: URL;
 };
 
 export class ConfigError extends Error {}
@@ -54,7 +58,24 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new ConfigError(`DUCSEO_LOCALE "${locale}" is not a language code such as "en" or "zh-CN".\nDUCSEO_LOCALE "${locale}" 不是语言代码，例如 "en" 或 "zh-CN"。`);
   }
 
-  return { siteUrl: url.origin, apiKey, locale };
+  const explicitProxy = env.DUCSEO_PROXY?.trim();
+  if (explicitProxy) {
+    let ok = false;
+    try {
+      ok = /^https?:$/.test(new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(explicitProxy) ? explicitProxy : `http://${explicitProxy}`).protocol);
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      throw new ConfigError(
+        `DUCSEO_PROXY "${explicitProxy}" is not an HTTP proxy address such as "http://127.0.0.1:7890" (SOCKS is not supported; use your proxy app's HTTP port).
+` +
+          `DUCSEO_PROXY "${explicitProxy}" 不是 HTTP 代理地址，应类似 "http://127.0.0.1:7890"（不支持 SOCKS，请填代理软件的 HTTP 端口）。`,
+      );
+    }
+  }
+  const proxy = proxyFor(url.origin, env);
+  return { siteUrl: url.origin, apiKey, locale, ...(proxy && { proxy }) };
 }
 
 /** The part of a key that is safe to show in logs and errors (CLAUDE.md §7). */

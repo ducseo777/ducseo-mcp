@@ -1,6 +1,6 @@
 {
   "name": "ducseo-mcp",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "MCP server that lets AI tools manage a Ducseo B2B website through its Agent API.",
   "license": "MIT",
   "type": "module",

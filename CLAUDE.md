@@ -4,7 +4,7 @@
 
 ## 1. 定位
 
-> 已实现（v0.2.1，对接 Agent API 1.3：写操作返回草稿预览链接 `previewUrl`，设置里可改统计代码 `analytics`）。开源许可证 MIT。
+> 已实现（v0.3.0，对接 Agent API 1.4：单个区块的增改删、网络重试和代理、页头按钮和页脚产品栏、业务类型）。开源许可证 MIT。
 
 - 外贸公司在自己的 AI 工具（Claude Desktop、Claude Code、ChatGPT/Codex、Cursor、Grok Build 等）里添加这个 MCP，填上**站点地址**和 **API Key**（在网站后台 “AI Agent” 菜单创建），AI 就能管理网站内容。
 - 本项目只是 Ducseo 站点 **Agent API**（`/api/agent/v1/*`）的客户端：把 API 包装成 AI 好用的 MCP 工具。**不含业务逻辑、不直连数据库**，所有校验和权限以站点为准。
@@ -30,6 +30,7 @@
 | `DUCSEO_SITE_URL` | 是 | 站点地址，如 `https://www.example.com` |
 | `DUCSEO_API_KEY` | 是 | 后台创建的 API Key（`dsk_` 开头） |
 | `DUCSEO_LOCALE` | 否 | AI 默认操作的前台语言，不填则用站点默认语言 |
+| `DUCSEO_PROXY` | 否 | HTTP 代理（如 `http://127.0.0.1:7890`），不填则读 `HTTPS_PROXY` / `ALL_PROXY`（`NO_PROXY` 生效）。Node 自带的 fetch 不走代理，所以有代理时由 `src/proxy.ts` 用 HTTP CONNECT 隧道发请求（只用 node 内置模块，不加依赖）。不支持 SOCKS |
 
 - 一个 MCP 实例只对应一个站点。管理多个站点就配多个实例，名字用 `ducseo-<客户名>`。
 - 启动时校验配置，缺失或格式错误要给出清楚的报错（中英文）。
@@ -51,7 +52,7 @@
 - 主题：`get_theme`、`update_theme`、`list_theme_presets`、`apply_theme_preset`、`import_design_md`（读取用户指定的本地 DESIGN.md 文件，交给站点按映射规则转换成主题；P1）。规则见主项目 `DESIGN.md` 第 2、11、12 节
 - 分类：`list_categories`、`get_category`、`create_category`、`update_category`（含分类 SEO 文案）、`delete_category`
 - 产品：`list_products`、`get_product`、`create_product`、`update_product`、`delete_product`
-- 页面：`list_block_types`、`list_pages`、`get_page`、`create_page`、`update_page_blocks`
+- 页面：`list_block_types`、`list_pages`、`get_page`、`create_page`、`update_page_blocks`（整页区块列表）、`update_page_block` / `add_page_block` / `remove_page_block`（只改一个区块：MCP 先读页面，改好后带读到的 version 存回，AI 不用重发整页）
 - 博客：`list_posts`、`get_post`、`create_post`、`update_post`
 - 翻译：`list_missing_translations`、`upsert_translation`
 - 媒体：`upload_media`（**本地文件路径**，可以直接上传客户电脑上的产品图、证书）、`upload_media_from_url`、`list_media`、`update_media_alt`
@@ -67,6 +68,7 @@
 - 每个工具是 `src/tools/define.ts` 的 `defineTool`：`requires` 写需要的权限，`capability` 写依赖的 whoami 能力标记；`src/server.ts` 的 `selectTools` 据此决定注册哪些工具。scope → 权限的映射在 `src/site.ts`，和主项目 `src/server/auth/actor.ts` 保持一致。
 - 内容类工具：`create_*` 接收一种语言的字段 + 与语言无关的字段，`update_*` 用 PATCH（主项目按语言、按字段合并），其他语言用 `upsert_translation`。写操作统一返回 `savedSummary`（状态、前台链接、后台审核链接、说明）。
 - 站点错误由 `runTool` 转成 `code + message + details` 加处理提示返回给 AI（`isError`），不抛给 SDK。
+- 网络重试（`src/client.ts`）：最多 3 次。GET/PUT/PATCH/DELETE 遇到任何网络错误都重试；POST 只在连接阶段失败（ECONNREFUSED、ENOTFOUND、TLS 握手被重置、代理 CONNECT 失败等）时重试，避免重复创建；超时不重试。错误信息带系统错误码，并提示设置 `DUCSEO_PROXY`。
 - 配置错误、Key 被拒、站点连不上、API 大版本不兼容时，server 仍然启动，只注册一个 `whoami`，返回中英文的原因和解决办法，让用户在对话里就能看到。
 
 工具设计要求：

@@ -54,8 +54,8 @@ export function instructions(site: Whoami, workingLocale: string): string {
     '- Read before you write: get_* the item first, change only what the user asked, and keep existing content.',
     "- Never invent company facts: founding year, factory size, staff, capacity, certifications, customers, export countries, prices or specs come only from the user's material. If something is missing, ask; do not guess.",
     '- Write for overseas B2B buyers (importers, distributors, engineers) in natural target-language wording, not a literal translation from Chinese. Keep numbers, units, model numbers and standards exact.',
-    '- SEO: one main keyword per page, used naturally; meta titles 30–60 characters, meta descriptions 120–160. Do not stuff keywords.',
-    '- Pages are built from blocks: call list_block_types before creating or editing blocks.',
+    '- SEO: one main keyword per page, used naturally; meta titles 30–60 characters, meta descriptions 120–160 (a Chinese, Japanese or Korean character counts as 2). Do not stuff keywords.',
+    '- Pages are built from blocks: call list_block_types before creating or editing blocks. To change, add or remove one block use update_page_block / add_page_block / remove_page_block; resend the whole list with update_page_blocks only when restructuring the page.',
     "- A page's last-modified date (sitemap, \"Updated\" on posts) moves only when that language's content really changes. Do not republish unchanged items or make cosmetic edits to look fresh; changing block styles or order does not count as an update.",
     '- Upload images with upload_media (local files) and always give alt text; then use the returned media id.',
     canPublish
@@ -63,6 +63,7 @@ export function instructions(site: Whoami, workingLocale: string): string {
       : '- This key cannot publish: everything you save is a draft for the site owner to review and publish in the dashboard.',
     '- After writing, give the user the reviewInDashboard link (and liveUrl when live) from the tool result.',
     '- If the site answers version_conflict, someone else edited the item: read it again, re-apply your change, then save.',
+    '- If a call fails with network_error after retries, tell the user; if it keeps happening they may need to set DUCSEO_PROXY (see the error text). Before re-sending a create_* that failed this way, check with list_* that it was not created.',
   ].join('\n');
 }
 

@@ -68,8 +68,8 @@ export const faqArg = z
   .describe('FAQ items, output as FAQPage structured data. Use real buyer questions; 3–8 is typical.');
 
 export const seoArgs = {
-  metaTitle: z.string().nullable().optional().describe('SEO title, 30–60 characters, main keyword first. The site appends the site name when it fits. null = generate from the name.'),
-  metaDescription: z.string().nullable().optional().describe('Meta description, 120–160 characters: what it is, key specs or benefit, and a reason to inquire. null = generate from the summary.'),
+  metaTitle: z.string().nullable().optional().describe('SEO title, 30–60 characters (a Chinese, Japanese or Korean character counts as 2, so about 15–30 Chinese characters), main keyword first. The site appends the site name when it fits. null = generate from the name.'),
+  metaDescription: z.string().nullable().optional().describe('Meta description, 120–160 characters (CJK characters count as 2, so about 60–80 Chinese characters): what it is, key specs or benefit, and a reason to inquire. null = generate from the summary.'),
   noindex: z.boolean().optional().describe('true keeps this language version out of search results and sitemaps (e.g. an unchecked machine translation). Default false.'),
 };
 

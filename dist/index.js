@@ -3766,7 +3766,7 @@ var require_schemes = __commonJS({
       urnComponent.nss = (uuidComponent.uuid || "").toLowerCase();
       return urnComponent;
     }
-    var http = (
+    var http2 = (
       /** @type {SchemeHandler} */
       {
         scheme: "http",
@@ -3775,11 +3775,11 @@ var require_schemes = __commonJS({
         serialize: httpSerialize
       }
     );
-    var https = (
+    var https2 = (
       /** @type {SchemeHandler} */
       {
         scheme: "https",
-        domainHost: http.domainHost,
+        domainHost: http2.domainHost,
         parse: httpParse,
         serialize: httpSerialize
       }
@@ -3823,8 +3823,8 @@ var require_schemes = __commonJS({
     var SCHEMES = (
       /** @type {Record<SchemeName, SchemeHandler>} */
       {
-        http,
-        https,
+        http: http2,
+        https: https2,
         ws,
         wss,
         urn,
@@ -5776,7 +5776,7 @@ var require_contains = __commonJS({
           const count = gen.let("count", 0);
           validateItems(schValid, () => gen.if(schValid, () => checkLimits(count)));
         }
-        function validateItems(_valid, block) {
+        function validateItems(_valid, block2) {
           gen.forRange("i", 0, len, (i) => {
             cxt.subschema({
               keyword: "contains",
@@ -5784,7 +5784,7 @@ var require_contains = __commonJS({
               dataPropType: util_1.Type.Num,
               compositeRule: true
             }, _valid);
-            block();
+            block2();
           });
         }
         function checkLimits(count) {
@@ -15157,8 +15157,8 @@ var error20 = () => {
       case "invalid_union":
         return "\u05E7\u05DC\u05D8 \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF";
       case "invalid_element": {
-        const place = withDefinite(issue2.origin ?? "array");
-        return `\u05E2\u05E8\u05DA \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF \u05D1${place}`;
+        const place2 = withDefinite(issue2.origin ?? "array");
+        return `\u05E2\u05E8\u05DA \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF \u05D1${place2}`;
       }
       default:
         return `\u05E7\u05DC\u05D8 \u05DC\u05D0 \u05EA\u05E7\u05D9\u05DF`;
@@ -28612,6 +28612,102 @@ var StdioServerTransport = class {
   }
 };
 
+// src/proxy.ts
+import http from "http";
+import https from "https";
+import tls from "tls";
+function proxyFor(siteUrl, env = process.env) {
+  const site = new URL(siteUrl);
+  if (site.protocol !== "https:") return void 0;
+  const raw = env.DUCSEO_PROXY?.trim() || (bypassed(site.hostname, env.NO_PROXY ?? env.no_proxy) ? "" : env.HTTPS_PROXY || env.https_proxy || env.ALL_PROXY || env.all_proxy || "").trim();
+  if (!raw) return void 0;
+  try {
+    const url2 = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `http://${raw}`);
+    return url2.protocol === "http:" || url2.protocol === "https:" ? url2 : void 0;
+  } catch {
+    return void 0;
+  }
+}
+function bypassed(host, noProxy) {
+  if (!noProxy) return false;
+  return noProxy.split(/[\s,]+/).filter(Boolean).some((entry) => entry === "*" || host === entry.replace(/^\./, "") || host.endsWith(entry.startsWith(".") ? entry : `.${entry}`));
+}
+function describeProxy(proxy) {
+  return `${proxy.protocol}//${proxy.username ? `${proxy.username}:***@` : ""}${proxy.host}`;
+}
+var ProxyConnectError = class extends Error {
+  code = "PROXY_CONNECT";
+};
+function openTunnel(proxy, host, port, signal) {
+  return new Promise((resolve3, reject) => {
+    const headers = { host: `${host}:${port}` };
+    if (proxy.username) {
+      headers["proxy-authorization"] = `Basic ${Buffer.from(`${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`).toString("base64")}`;
+    }
+    const mod = proxy.protocol === "https:" ? https : http;
+    const req = mod.request({
+      host: proxy.hostname,
+      port: Number(proxy.port) || (proxy.protocol === "https:" ? 443 : 80),
+      method: "CONNECT",
+      path: `${host}:${port}`,
+      headers,
+      signal: signal ?? void 0
+    });
+    req.once("connect", (res, socket) => {
+      if (res.statusCode === 200) return resolve3(socket);
+      socket.destroy();
+      reject(new ProxyConnectError(`the proxy ${describeProxy(proxy)} refused the connection (HTTP ${res.statusCode})`));
+    });
+    req.once("error", (err) => reject(signal?.aborted ? signal.reason : new ProxyConnectError(`could not reach the proxy ${describeProxy(proxy)}: ${err.code ?? err.message}`)));
+    req.end();
+  });
+}
+var NULL_BODY = /* @__PURE__ */ new Set([101, 204, 205, 304]);
+function proxyFetch(proxy) {
+  return (async (input2, init) => {
+    const req = new Request(input2, init);
+    const url2 = new URL(req.url);
+    const signal = init?.signal ?? null;
+    const body = req.body ? Buffer.from(await req.arrayBuffer()) : void 0;
+    const headers = Object.fromEntries(req.headers);
+    if (body) headers["content-length"] = String(body.length);
+    const port = Number(url2.port) || 443;
+    const socket = await openTunnel(proxy, url2.hostname, port, signal);
+    return new Promise((resolve3, reject) => {
+      const r = https.request(
+        {
+          host: url2.hostname,
+          port,
+          path: url2.pathname + url2.search,
+          method: req.method,
+          headers,
+          signal: signal ?? void 0,
+          createConnection: () => tls.connect({ socket, servername: url2.hostname })
+        },
+        (res) => {
+          const chunks = [];
+          res.on("data", (c) => chunks.push(c));
+          res.on("error", reject);
+          res.on("end", () => {
+            const h = new Headers();
+            for (const [k, v] of Object.entries(res.headers)) {
+              if (v === void 0) continue;
+              for (const one of Array.isArray(v) ? v : [v]) h.append(k, one);
+            }
+            const status = res.statusCode ?? 502;
+            resolve3(new Response(NULL_BODY.has(status) ? null : Buffer.concat(chunks), { status, headers: h }));
+          });
+        }
+      );
+      r.once("error", (err) => {
+        socket.destroy();
+        reject(signal?.aborted ? signal.reason : err);
+      });
+      r.end(body);
+    });
+  });
+}
+
 // src/client.ts
 var ApiError = class extends Error {
   constructor(status, code, message, details) {
@@ -28625,15 +28721,35 @@ var ApiError = class extends Error {
   details;
 };
 var DEFAULT_TIMEOUT = 6e4;
+var RETRY_DELAYS = [600, 2e3];
+var IDEMPOTENT = /* @__PURE__ */ new Set(["GET", "HEAD", "PUT", "PATCH", "DELETE"]);
+var CONNECT_CODES = /* @__PURE__ */ new Set(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "EHOSTUNREACH", "ENETUNREACH", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "PROXY_CONNECT"]);
+function errorCode(err) {
+  for (let e = err, depth = 0; e && depth < 4; e = e.cause, depth++) {
+    if (typeof e.code === "string") return e.code;
+  }
+  return void 0;
+}
+function errorText(err) {
+  const parts = [];
+  for (let e = err, depth = 0; e && depth < 4; e = e.cause, depth++) {
+    if (typeof e.message === "string" && e.message && !parts.includes(e.message)) parts.push(e.message);
+  }
+  return parts.join(": ") || String(err);
+}
 var DucseoClient = class {
-  constructor(config2, fetchImpl = fetch) {
+  constructor(config2, fetchImpl = fetch, options = {}) {
     this.config = config2;
     this.fetchImpl = fetchImpl;
     this.base = `${config2.siteUrl}/api/agent/v1`;
+    this.retryDelays = options.retryDelays ?? RETRY_DELAYS;
+    this.proxy = options.proxy;
   }
   config;
   fetchImpl;
   base;
+  retryDelays;
+  proxy;
   get(path, query) {
     return this.request("GET", path, { query });
   }
@@ -28661,13 +28777,7 @@ var DucseoClient = class {
       headers["content-type"] = "application/json";
       body = JSON.stringify(opts.body);
     }
-    let res;
-    try {
-      res = await this.fetchImpl(url2, { method, headers, body, signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT) });
-    } catch (err) {
-      const reason = err instanceof Error ? err.name === "TimeoutError" ? "the request timed out" : err.message : String(err);
-      throw new ApiError(0, "network_error", `Could not reach ${this.config.siteUrl} (${reason}). Check the site address and the internet connection, then retry.`);
-    }
+    const res = await this.send(method, url2, { method, headers, body }, opts.timeoutMs ?? DEFAULT_TIMEOUT);
     if (res.status === 204) return null;
     const text = await res.text();
     let data = null;
@@ -28688,6 +28798,31 @@ var DucseoClient = class {
       throw new ApiError(res.status, "bad_response", `${this.config.siteUrl} returned something that is not JSON. Is DUCSEO_SITE_URL the Ducseo site?`);
     }
     return data;
+  }
+  /**
+   * fetch with retries for flaky networks (resets on the way to Cloudflare are common from
+   * mainland China). Idempotent requests are retried on any network failure; a POST only when the
+   * connection itself failed, so a create is never sent twice. Timeouts are not retried.
+   */
+  async send(method, url2, init, timeoutMs) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.fetchImpl(url2, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+      } catch (err) {
+        const timedOut = err instanceof Error && err.name === "TimeoutError";
+        const code = errorCode(err);
+        const connectFailed = code !== void 0 && CONNECT_CODES.has(code) || /before secure TLS connection/i.test(errorText(err));
+        if (!timedOut && attempt < this.retryDelays.length && (IDEMPOTENT.has(method) || connectFailed)) {
+          await new Promise((r) => setTimeout(r, this.retryDelays[attempt]));
+          continue;
+        }
+        const reason = timedOut ? "the request timed out" : `${errorText(err)}${code ? ` [${code}]` : ""}`;
+        const tries = attempt + 1 > 1 ? ` after ${attempt + 1} attempts` : "";
+        const hint = this.proxy ? `Requests go through the proxy ${describeProxy(this.proxy)}; check that it is running.` : 'If this keeps happening (for example in mainland China, where connections to Cloudflare are often reset), the user can set DUCSEO_PROXY to the HTTP address of their proxy app, e.g. "http://127.0.0.1:7890", in this MCP server env and restart the AI tool.';
+        const sent = method === "POST" && !connectFailed && !timedOut ? " The request may have reached the site: list or get the item before creating it again." : "";
+        throw new ApiError(0, "network_error", `Could not reach ${this.config.siteUrl}${tries} (${reason}).${sent} Check the internet connection, then retry. ${hint}`);
+      }
+    }
   }
   url(path, query) {
     if (!path.startsWith("/") || path.includes("..") || path.includes("//")) throw new Error(`Invalid API path "${path}".`);
@@ -28744,7 +28879,23 @@ DUCSEO_API_KEY \u683C\u5F0F\u4E0D\u5BF9\uFF0C\u5E94\u8BE5\u4EE5 "dsk_" \u5F00\u5
     throw new ConfigError(`DUCSEO_LOCALE "${locale}" is not a language code such as "en" or "zh-CN".
 DUCSEO_LOCALE "${locale}" \u4E0D\u662F\u8BED\u8A00\u4EE3\u7801\uFF0C\u4F8B\u5982 "en" \u6216 "zh-CN"\u3002`);
   }
-  return { siteUrl: url2.origin, apiKey, locale };
+  const explicitProxy = env.DUCSEO_PROXY?.trim();
+  if (explicitProxy) {
+    let ok = false;
+    try {
+      ok = /^https?:$/.test(new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(explicitProxy) ? explicitProxy : `http://${explicitProxy}`).protocol);
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      throw new ConfigError(
+        `DUCSEO_PROXY "${explicitProxy}" is not an HTTP proxy address such as "http://127.0.0.1:7890" (SOCKS is not supported; use your proxy app's HTTP port).
+DUCSEO_PROXY "${explicitProxy}" \u4E0D\u662F HTTP \u4EE3\u7406\u5730\u5740\uFF0C\u5E94\u7C7B\u4F3C "http://127.0.0.1:7890"\uFF08\u4E0D\u652F\u6301 SOCKS\uFF0C\u8BF7\u586B\u4EE3\u7406\u8F6F\u4EF6\u7684 HTTP \u7AEF\u53E3\uFF09\u3002`
+      );
+    }
+  }
+  const proxy = proxyFor(url2.origin, env);
+  return { siteUrl: url2.origin, apiKey, locale, ...proxy && { proxy } };
 }
 function keyPrefix(key) {
   return key.length <= 12 ? `${key.slice(0, 4)}\u2026` : `${key.slice(0, 12)}\u2026`;
@@ -36795,7 +36946,7 @@ var EMPTY_COMPLETION_RESULT = {
 };
 
 // package.json
-var version2 = "0.2.1";
+var version2 = "0.3.0";
 
 // src/site.ts
 var API_MAJOR = 1;
@@ -36844,8 +36995,8 @@ var pageArgs = {
 };
 var faqArg = external_exports.array(external_exports.object({ q: external_exports.string().describe("Question as a buyer would ask it."), a: external_exports.string().describe("Answer, plain text or short Markdown.") })).describe("FAQ items, output as FAQPage structured data. Use real buyer questions; 3\u20138 is typical.");
 var seoArgs = {
-  metaTitle: external_exports.string().nullable().optional().describe("SEO title, 30\u201360 characters, main keyword first. The site appends the site name when it fits. null = generate from the name."),
-  metaDescription: external_exports.string().nullable().optional().describe("Meta description, 120\u2013160 characters: what it is, key specs or benefit, and a reason to inquire. null = generate from the summary."),
+  metaTitle: external_exports.string().nullable().optional().describe("SEO title, 30\u201360 characters (a Chinese, Japanese or Korean character counts as 2, so about 15\u201330 Chinese characters), main keyword first. The site appends the site name when it fits. null = generate from the name."),
+  metaDescription: external_exports.string().nullable().optional().describe("Meta description, 120\u2013160 characters (CJK characters count as 2, so about 60\u201380 Chinese characters): what it is, key specs or benefit, and a reason to inquire. null = generate from the summary."),
   noindex: external_exports.boolean().optional().describe("true keeps this language version out of search results and sitemaps (e.g. an unchecked machine translation). Default false.")
 };
 var markdownNote = "Markdown (## to #### headings, lists, tables, links, **bold**). No raw HTML; it is stripped. Do not repeat the title as a heading.";
@@ -36890,7 +37041,7 @@ function savedSummary(ctx, type, state, locale) {
 async function createContent(ctx, type, input2) {
   const locale = ctx.locale(input2.locale);
   const tr = defined(input2.tr);
-  if (!tr.slug) tr.slug = slugify2(String(tr[input2.nameField] ?? ""));
+  if (!tr.slug) tr.slug = type === "page" && input2.shared.kind === "home" ? "home" : slugify2(String(tr[input2.nameField] ?? ""));
   const state = await ctx.client.post(CONTENT_PATH[type], {
     doc: { ...defined(input2.shared), translations: { [locale]: tr } },
     publish: input2.publish
@@ -37182,16 +37333,15 @@ var updateMediaAlt = defineTool({
 var mediaTools = [uploadMedia, uploadMediaFromUrl, listMedia, updateMediaAlt];
 
 // src/tools/pages.ts
-var blocks = external_exports.array(
-  external_exports.object({
-    id: external_exports.string().describe("Unique within the page (letters, digits, - or _). Keep existing ids when editing."),
-    type: external_exports.string().describe('Block type from list_block_types, e.g. "hero", "richText", "faq".'),
-    variant: external_exports.string().optional().describe("One of the block type's variants; omit for the design's default."),
-    background: external_exports.string().optional().describe("Section background (see list_block_types rules)."),
-    spacing: external_exports.string().optional().describe("Vertical spacing."),
-    data: external_exports.record(external_exports.string(), external_exports.unknown()).describe("Object matching the block type's dataSchema.")
-  })
-).describe("The ordered blocks of the page. Call list_block_types first for the types, their data schemas and composition rules.");
+var block = external_exports.object({
+  id: external_exports.string().describe("Unique within the page (letters, digits, - or _). Keep existing ids when editing."),
+  type: external_exports.string().describe('Block type from list_block_types, e.g. "hero", "richText", "faq".'),
+  variant: external_exports.string().optional().describe("One of the block type's variants; omit for the design's default."),
+  background: external_exports.string().optional().describe("Section background (see list_block_types rules)."),
+  spacing: external_exports.string().optional().describe("Vertical spacing."),
+  data: external_exports.record(external_exports.string(), external_exports.unknown()).describe("Object matching the block type's dataSchema.")
+});
+var blocks = external_exports.array(block).describe("The ordered blocks of the page. Call list_block_types first for the types, their data schemas and composition rules.");
 var listBlockTypes = defineTool({
   name: "list_block_types",
   title: "Page block types",
@@ -37232,7 +37382,7 @@ var createPage = defineTool({
     locale: localeArg,
     kind: external_exports.enum(["page", "home"]).optional().describe('Default "page".'),
     title: external_exports.string().describe("Page title (the H1 on most designs)."),
-    slug: external_exports.string().optional().describe('URL slug in this language, e.g. "about-us". Derived from the title if omitted (ASCII titles only). Ignored for the home page.'),
+    slug: external_exports.string().optional().describe('URL slug in this language, e.g. "about-us". Derived from the title if omitted (ASCII titles only). Not needed for the home page.'),
     blocks: blocks.optional(),
     ...seoArgs,
     publish: publishArg
@@ -37243,14 +37393,122 @@ var createPage = defineTool({
 var updatePageBlocks = defineTool({
   name: "update_page_blocks",
   title: "Replace page blocks",
-  description: "Replace the block list of one language of a page (send the complete list in order: blocks you leave out are removed). Keep the ids of blocks you keep. To change only the title or SEO fields, use upsert_translation. Saved as a draft unless publish=true.",
+  description: "Replace the block list of one language of a page (send the complete list in order: blocks you leave out are removed). Keep the ids of blocks you keep. To change, add or remove a single block use update_page_block, add_page_block or remove_page_block instead. To change only the title or SEO fields, use upsert_translation. Saved as a draft unless publish=true.",
   requires: ["content.write"],
   capability: "pages",
   input: { id: idArg("page"), locale: localeArg, blocks, version: versionArg, publish: publishArg },
   annotations: WRITE,
   run: ({ id, locale, blocks: blocks2, version: version3, publish: publish2 }, ctx) => updateContent(ctx, "page", id, { locale, version: version3, publish: publish2, shared: {}, tr: { blocks: blocks2 } })
 });
-var pageTools = [listBlockTypes, listPages, getPage, createPage, updatePageBlocks];
+var blockIdArg = external_exports.string().describe("The block id, as listed by get_page.");
+async function editBlocks(ctx, input2, edit) {
+  const locale = ctx.locale(input2.locale);
+  const page = await ctx.client.get(`/pages/${seg(input2.id)}`);
+  const tr = page.doc.translations[locale];
+  if (!tr) {
+    throw new ToolError(
+      `This page has no "${locale}" version yet. Create it with upsert_translation (type "page"), or work in one of: ${Object.keys(page.doc.translations).join(", ")}.`
+    );
+  }
+  if (input2.version !== void 0 && input2.version !== page.version) {
+    throw new ToolError(`The page is at version ${page.version}, not ${input2.version}: someone changed it since you read it. Call get_page again and retry.`);
+  }
+  const next = edit(structuredClone(tr.blocks ?? []));
+  return updateContent(ctx, "page", input2.id, { locale, version: page.version, publish: input2.publish, shared: {}, tr: { blocks: next } });
+}
+function indexOf(blocks2, blockId) {
+  const i = blocks2.findIndex((b) => b.id === blockId);
+  if (i < 0) throw new ToolError(`No block "${blockId}" in this language. Blocks: ${blocks2.map((b) => `${b.id} (${b.type})`).join(", ") || "none"}.`);
+  return i;
+}
+var positionArgs = {
+  after: external_exports.string().optional().describe("Put the block right after the block with this id."),
+  first: external_exports.boolean().optional().describe("Put the block first on the page (a hero must stay first if the page has one).")
+};
+function place(blocks2, b, where) {
+  if (where.first) return [b, ...blocks2];
+  if (where.after) {
+    const i = indexOf(blocks2, where.after);
+    return [...blocks2.slice(0, i + 1), b, ...blocks2.slice(i + 1)];
+  }
+  return [...blocks2, b];
+}
+var updatePageBlock = defineTool({
+  name: "update_page_block",
+  title: "Change one page block",
+  description: "Change one block of one language of a page without resending the others. `data` is merged into the block's data: keys you pass replace the old values (arrays such as FAQ items or plans are replaced as a whole), keys set to null are removed, keys you leave out stay. It can also change variant, background or spacing (null = back to the default) and move the block (after / first). Prefer this over update_page_blocks for a single block. Saved as a draft unless publish=true.",
+  requires: ["content.write"],
+  capability: "pages",
+  input: {
+    id: idArg("page"),
+    blockId: blockIdArg,
+    locale: localeArg,
+    data: external_exports.record(external_exports.string(), external_exports.unknown()).optional().describe('Fields of the block data to set, e.g. {"image": "<media id>"} or {"title": "New title"}.'),
+    replaceData: external_exports.boolean().optional().describe("true: `data` replaces the whole data object instead of being merged into it."),
+    variant: external_exports.string().nullable().optional().describe("One of the block type's variants; null = the design's default."),
+    background: external_exports.string().nullable().optional().describe("canvas, soft, dark or brand; null = the block default."),
+    spacing: external_exports.string().nullable().optional().describe("compact, normal or spacious; null = normal."),
+    ...positionArgs,
+    version: versionArg,
+    publish: publishArg
+  },
+  annotations: WRITE,
+  run: ({ id, blockId, locale, data, replaceData, variant, background, spacing, after, first, version: version3, publish: publish2 }, ctx) => editBlocks(ctx, { id, locale, version: version3, publish: publish2 }, (blocks2) => {
+    const i = indexOf(blocks2, blockId);
+    const b = { ...blocks2[i] };
+    if (data) {
+      const merged = replaceData ? {} : { ...b.data };
+      for (const [k, v] of Object.entries(data)) {
+        if (v === null) delete merged[k];
+        else merged[k] = v;
+      }
+      b.data = merged;
+    }
+    for (const [k, v] of [
+      ["variant", variant],
+      ["background", background],
+      ["spacing", spacing]
+    ]) {
+      if (v === null) delete b[k];
+      else if (v !== void 0) b[k] = v;
+    }
+    if (after === void 0 && !first) return blocks2.map((x, j) => j === i ? b : x);
+    return place(
+      blocks2.filter((_, j) => j !== i),
+      b,
+      { after, first }
+    );
+  })
+});
+var addPageBlock = defineTool({
+  name: "add_page_block",
+  title: "Add a page block",
+  description: "Insert one new block into one language of a page: after a given block, first, or (by default) at the end. Read list_block_types for the data schema first; the id must be new on the page. Saved as a draft unless publish=true.",
+  requires: ["content.write"],
+  capability: "pages",
+  input: { id: idArg("page"), locale: localeArg, block, ...positionArgs, version: versionArg, publish: publishArg },
+  annotations: WRITE,
+  run: ({ id, locale, block: b, after, first, version: version3, publish: publish2 }, ctx) => editBlocks(ctx, { id, locale, version: version3, publish: publish2 }, (blocks2) => {
+    if (blocks2.some((x) => x.id === b.id)) {
+      throw new ToolError(`A block with id "${b.id}" already exists on this page. Choose another id, or use update_page_block to change it.`);
+    }
+    return place(blocks2, b, { after, first });
+  })
+});
+var removePageBlock = defineTool({
+  name: "remove_page_block",
+  title: "Remove a page block",
+  description: "Remove one block from one language of a page; the other blocks stay as they are. The revision history keeps the old version. Saved as a draft unless publish=true.",
+  requires: ["content.write"],
+  capability: "pages",
+  input: { id: idArg("page"), blockId: blockIdArg, locale: localeArg, version: versionArg, publish: publishArg },
+  annotations: DESTRUCTIVE,
+  run: ({ id, blockId, locale, version: version3, publish: publish2 }, ctx) => editBlocks(ctx, { id, locale, version: version3, publish: publish2 }, (blocks2) => {
+    const i = indexOf(blocks2, blockId);
+    return blocks2.filter((_, j) => j !== i);
+  })
+});
+var pageTools = [listBlockTypes, listPages, getPage, createPage, updatePageBlocks, updatePageBlock, addPageBlock, removePageBlock];
 
 // src/tools/posts.ts
 var translationFields2 = {
@@ -37551,7 +37809,7 @@ var SETTING_KEYS = ["site", "contact", "social", "facts", "voice", "analytics", 
 var getSettings = defineTool({
   name: "get_settings",
   title: "Read site settings",
-  description: "Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. facts: the company fact sheet. voice: brand tone, keywords, words to avoid. analytics: tracking IDs and cookie consent mode. navigation: header/footer menus. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.",
+  description: "Read one settings group. site: name, tagline per language, production URL, logo/favicon media ids, logoShowName, businessType. contact: email, phone, WhatsApp, address/hours per language, map. social: profile URLs. facts: the company fact sheet. voice: brand tone, keywords, words to avoid. analytics: tracking IDs and cookie consent mode. navigation: header/footer menus, header button (cta), footer products column. seo, inquiry, turnstile: read-only for AI. Returns { value, version }.",
   requires: ["settings.read"],
   input: { key: external_exports.enum(SETTING_KEYS).describe("Settings group to read.") },
   annotations: READ,
@@ -37560,7 +37818,7 @@ var getSettings = defineTool({
 var updateSiteSettings = defineTool({
   name: "update_site_settings",
   title: "Update site settings",
-  description: 'Change fields of the site, contact, social, facts, voice or analytics settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. facts (company fact sheet): foundedYear (number), employees, factoryArea, capacity, annualSales, exportCountries (text), markets and customers (lists of text), certifications [{name, detail}], other [{label, value}]; lists you pass replace the old list. voice: tone, keywords (list), avoid. analytics (sites with the "analytics" capability): ga4 ("G-..."), gtm ("GTM-..."), clarity, metaPixel, linkedin (partner id), cloudflare (Web Analytics token), consent ("banner" = cookie banner, tags wait for consent; "none"), privacyUrl ("/privacy-policy/"); empty string turns a tag off. Custom HTML code cannot be set by AI. Use only what the user tells you or gives you: never invent facts, phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
+  description: 'Change fields of the site, contact, social, facts, voice or analytics settings. Only the fields you pass change (shallow merge); per-language fields such as tagline, address and hours are objects keyed by language, e.g. {"tagline": {"en": "...", "es": "..."}}. site (sites with the "business-type" capability): businessType "manufacturer" | "trading" | "service" (service = no product catalog: no Products menu item or product checklist, no factory facts asked); logoShowName true shows the site name as text next to an icon-only logo. facts (company fact sheet): foundedYear (number), employees, factoryArea, capacity, annualSales, exportCountries (text), markets and customers (lists of text), certifications [{name, detail}], other [{label, value}] for anything else (for a service business: services, prices, team, track record); lists you pass replace the old list. Facts may be written in any language. voice: tone, keywords (list), avoid. analytics (sites with the "analytics" capability): ga4 ("G-..."), gtm ("GTM-..."), clarity, metaPixel, linkedin (partner id), cloudflare (Web Analytics token), consent ("banner" = cookie banner, tags wait for consent; "none"), privacyUrl ("/privacy-policy/"); empty string turns a tag off. Custom HTML code cannot be set by AI. Use only what the user tells you or gives you: never invent facts, phone numbers, addresses or emails. Media fields (logoMediaId, logoDarkMediaId, faviconMediaId) take ids from upload_media.',
   requires: ["settings.write"],
   input: {
     key: external_exports.enum(["site", "contact", "social", "facts", "voice", "analytics"]).describe('Settings group (facts and voice need the "facts" capability, analytics the "analytics" capability).'),
@@ -37579,15 +37837,29 @@ var navItem = external_exports.object({
 var updateNavigation = defineTool({
   name: "update_navigation",
   title: "Update menus",
-  description: 'Replace the header menu and/or the footer "Company" links. Pass the full list for each menu you change (order = display order). An empty header list restores the automatic menu (Home, Products, Blog once posts exist, Contact); an empty footer list mirrors the header. The Products item gets the category dropdown automatically. Read the current menus with get_settings key="navigation" first.',
+  description: 'Replace the header menu and/or the footer "Company" links, and set the header button and the footer products column. Pass the full list for each menu you change (order = display order). An empty header list restores the automatic menu (Home, Products unless the site is a service business, Blog once posts exist, Contact); an empty footer list mirrors the header. The Products item gets the category dropdown automatically. cta and footerProducts need the "header-cta" capability (see whoami); older sites ignore them. Read the current settings with get_settings key="navigation" first.',
   requires: ["settings.write"],
   input: {
     header: external_exports.array(navItem).max(10).optional().describe("Header menu, at most 10 items."),
     footer: external_exports.array(navItem).max(12).optional().describe("Footer links, at most 12 items."),
+    cta: external_exports.object({
+      show: external_exports.boolean().describe("false hides the button."),
+      label: external_exports.record(external_exports.string(), external_exports.string()).optional().describe('Button text per language, e.g. {"en": "Free consultation", "zh-CN": "\u514D\u8D39\u54A8\u8BE2"}. Empty = the built-in "Request a Quote".'),
+      href: external_exports.string().optional().describe('Target: a site path such as "/pricing/" or an https:// URL. Empty = the contact page.')
+    }).optional().describe('The highlighted button at the right of the header. Service businesses usually want a label such as "Free consultation" instead of "Request a Quote".'),
+    footerProducts: external_exports.boolean().optional().describe("false hides the footer Products column (it is also hidden while no category is published)."),
     version: versionArg
   },
   annotations: WRITE,
-  run: ({ header, footer, version: version3 }, ctx) => ctx.client.patch("/settings/navigation", { value: { ...header && { header }, ...footer && { footer } }, version: version3 })
+  run: ({ header, footer, cta, footerProducts, version: version3 }, ctx) => ctx.client.patch("/settings/navigation", {
+    value: {
+      ...header && { header },
+      ...footer && { footer },
+      ...cta && { cta: { show: cta.show, label: cta.label ?? {}, href: cta.href ?? "" } },
+      ...footerProducts !== void 0 && { footerProducts }
+    },
+    version: version3
+  })
 });
 var siteTools = [whoami, getSiteOverview, getSettings, updateSiteSettings, updateNavigation];
 
@@ -37720,13 +37992,14 @@ function instructions(site, workingLocale) {
     "- Read before you write: get_* the item first, change only what the user asked, and keep existing content.",
     "- Never invent company facts: founding year, factory size, staff, capacity, certifications, customers, export countries, prices or specs come only from the user's material. If something is missing, ask; do not guess.",
     "- Write for overseas B2B buyers (importers, distributors, engineers) in natural target-language wording, not a literal translation from Chinese. Keep numbers, units, model numbers and standards exact.",
-    "- SEO: one main keyword per page, used naturally; meta titles 30\u201360 characters, meta descriptions 120\u2013160. Do not stuff keywords.",
-    "- Pages are built from blocks: call list_block_types before creating or editing blocks.",
+    "- SEO: one main keyword per page, used naturally; meta titles 30\u201360 characters, meta descriptions 120\u2013160 (a Chinese, Japanese or Korean character counts as 2). Do not stuff keywords.",
+    "- Pages are built from blocks: call list_block_types before creating or editing blocks. To change, add or remove one block use update_page_block / add_page_block / remove_page_block; resend the whole list with update_page_blocks only when restructuring the page.",
     `- A page's last-modified date (sitemap, "Updated" on posts) moves only when that language's content really changes. Do not republish unchanged items or make cosmetic edits to look fresh; changing block styles or order does not count as an update.`,
     "- Upload images with upload_media (local files) and always give alt text; then use the returned media id.",
     canPublish ? "- Changes are saved as drafts. Publish only when the user explicitly asks; otherwise tell them the change is waiting for review." : "- This key cannot publish: everything you save is a draft for the site owner to review and publish in the dashboard.",
     "- After writing, give the user the reviewInDashboard link (and liveUrl when live) from the tool result.",
-    "- If the site answers version_conflict, someone else edited the item: read it again, re-apply your change, then save."
+    "- If the site answers version_conflict, someone else edited the item: read it again, re-apply your change, then save.",
+    "- If a call fails with network_error after retries, tell the user; if it keeps happening they may need to set DUCSEO_PROXY (see the error text). Before re-sending a create_* that failed this way, check with list_* that it was not created."
   ].join("\n");
 }
 function errorResult(text) {
@@ -37807,7 +38080,8 @@ async function connect() {
     if (err instanceof ConfigError) return { problem: err.message };
     throw err;
   }
-  const client = new DucseoClient(config2);
+  const client = new DucseoClient(config2, config2.proxy ? proxyFetch(config2.proxy) : fetch, { proxy: config2.proxy });
+  if (config2.proxy) log(`using proxy ${describeProxy(config2.proxy)}`);
   let site;
   try {
     site = await client.get("/whoami");

@@ -1,6 +1,7 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ApiError, DucseoClient } from './client';
 import { ConfigError, keyPrefix, loadConfig, type Config } from './config';
+import { describeProxy, proxyFetch } from './proxy';
 import { createProblemServer, createServer } from './server';
 import { API_MAJOR, apiMajor, type Whoami } from './site';
 
@@ -18,7 +19,8 @@ async function connect(): Promise<Connection> {
     throw err;
   }
 
-  const client = new DucseoClient(config);
+  const client = new DucseoClient(config, config.proxy ? proxyFetch(config.proxy) : fetch, { proxy: config.proxy });
+  if (config.proxy) log(`using proxy ${describeProxy(config.proxy)}`);
   let site: Whoami;
   try {
     site = await client.get<Whoami>('/whoami');

@@ -39,6 +39,7 @@
 | `DUCSEO_SITE_URL` | 是 | 网站地址，例如 `https://www.example.com` |
 | `DUCSEO_API_KEY` | 是 | 后台创建的 API Key（`dsk_` 开头） |
 | `DUCSEO_LOCALE` | 否 | AI 默认使用的前台语言，不填就用网站默认语言 |
+| `DUCSEO_PROXY` | 否 | HTTP 代理地址，例如 `http://127.0.0.1:7890`（代理软件的 HTTP 端口，不支持 SOCKS）。在国内经常出现 `network_error` 时填写。不填时会读取 `HTTPS_PROXY` / `ALL_PROXY` |
 
 管理多个网站就添加多个 MCP，名字区分开，比如 `ducseo-abc`、`ducseo-xyz`。
 
@@ -55,7 +56,7 @@
 | 站点设置 | `get_settings`、`update_site_settings`、`update_navigation` | `read` / `settings:write` |
 | 主题 | `get_theme`、`list_theme_presets`、`update_theme`、`apply_theme_preset`、`import_design_md`（按第三方 DESIGN.md 调整配色和字体） | `read` / `settings:write` |
 | 分类、产品 | `list_*`、`get_*`、`create_*`、`update_*`、`delete_*` | `read` / `content:draft` |
-| 页面 | `list_block_types`、`list_pages`、`get_page`、`create_page`、`update_page_blocks` | `read` / `content:draft` |
+| 页面 | `list_block_types`、`list_pages`、`get_page`、`create_page`、`update_page_blocks`、`update_page_block`、`add_page_block`、`remove_page_block` | `read` / `content:draft` |
 | 博客 | `list_posts`、`get_post`、`create_post`、`update_post` | `read` / `content:draft` |
 | 翻译 | `list_missing_translations`、`upsert_translation` | `read` / `content:draft` |
 | 媒体 | `upload_media`（电脑上的文件）、`upload_media_from_url`、`list_media`、`update_media_alt` | `media:write` / `read` |
