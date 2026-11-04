@@ -85,12 +85,23 @@ export const updateNavigation = defineTool({
   name: 'update_navigation',
   title: 'Update menus',
   description:
-    'Replace the header menu and/or the footer "Company" links, and set the header button and the footer products column. Pass the full list for each menu you change (order = display order). An empty header list restores the automatic menu (Home, Products unless the site is a service business, Blog once posts exist, Contact); an empty footer list mirrors the header. The Products item gets the category dropdown automatically. ' +
-    'cta and footerProducts need the "header-cta" capability (see whoami); older sites ignore them. Read the current settings with get_settings key="navigation" first.',
+    'Replace the header menu and/or the footer links, and set the header button and the footer products column. Pass the full list for each menu you change (order = display order). An empty header list restores the automatic menu (Home, Products unless the site is a service business, Blog once posts exist, Contact); an empty footer list mirrors the header. The Products item gets the category dropdown automatically. ' +
+    'The footer shows either one "Company" column (footer) or up to 4 titled columns (footerColumns, e.g. Services / Resources / About); the Products and Contact columns are added automatically. ' +
+    'cta and footerProducts need the "header-cta" capability, footerColumns the "footer-columns" capability (see whoami); older sites ignore them. Read the current settings with get_settings key="navigation" first.',
   requires: ['settings.write'],
   input: {
     header: z.array(navItem).max(10).optional().describe('Header menu, at most 10 items.'),
-    footer: z.array(navItem).max(12).optional().describe('Footer links, at most 12 items.'),
+    footer: z.array(navItem).max(12).optional().describe('Footer "Company" column, at most 12 items. Not shown while footerColumns is set.'),
+    footerColumns: z
+      .array(
+        z.object({
+          title: z.record(z.string(), z.string()).optional().describe('Column heading per language, e.g. {"en": "Services", "zh-CN": "服务"}. A language without a heading shows the links only.'),
+          items: z.array(navItem).min(1).max(12).describe('Links in this column, at least 1, at most 12.'),
+        }),
+      )
+      .max(4)
+      .optional()
+      .describe('Footer link columns, at most 4; replaces the single "Company" column. [] goes back to the "Company" column.'),
     cta: z
       .object({
         show: z.boolean().describe('false hides the button.'),
@@ -103,11 +114,12 @@ export const updateNavigation = defineTool({
     version: versionArg,
   },
   annotations: WRITE,
-  run: ({ header, footer, cta, footerProducts, version }, ctx) =>
+  run: ({ header, footer, footerColumns, cta, footerProducts, version }, ctx) =>
     ctx.client.patch('/settings/navigation', {
       value: {
         ...(header && { header }),
         ...(footer && { footer }),
+        ...(footerColumns && { footerColumns: footerColumns.map((c) => ({ title: c.title ?? {}, items: c.items })) }),
         ...(cta && { cta: { show: cta.show, label: cta.label ?? {}, href: cta.href ?? '' } }),
         ...(footerProducts !== undefined && { footerProducts }),
       },

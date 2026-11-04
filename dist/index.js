@@ -37837,11 +37837,17 @@ var navItem = external_exports.object({
 var updateNavigation = defineTool({
   name: "update_navigation",
   title: "Update menus",
-  description: 'Replace the header menu and/or the footer "Company" links, and set the header button and the footer products column. Pass the full list for each menu you change (order = display order). An empty header list restores the automatic menu (Home, Products unless the site is a service business, Blog once posts exist, Contact); an empty footer list mirrors the header. The Products item gets the category dropdown automatically. cta and footerProducts need the "header-cta" capability (see whoami); older sites ignore them. Read the current settings with get_settings key="navigation" first.',
+  description: 'Replace the header menu and/or the footer links, and set the header button and the footer products column. Pass the full list for each menu you change (order = display order). An empty header list restores the automatic menu (Home, Products unless the site is a service business, Blog once posts exist, Contact); an empty footer list mirrors the header. The Products item gets the category dropdown automatically. The footer shows either one "Company" column (footer) or up to 4 titled columns (footerColumns, e.g. Services / Resources / About); the Products and Contact columns are added automatically. cta and footerProducts need the "header-cta" capability, footerColumns the "footer-columns" capability (see whoami); older sites ignore them. Read the current settings with get_settings key="navigation" first.',
   requires: ["settings.write"],
   input: {
     header: external_exports.array(navItem).max(10).optional().describe("Header menu, at most 10 items."),
-    footer: external_exports.array(navItem).max(12).optional().describe("Footer links, at most 12 items."),
+    footer: external_exports.array(navItem).max(12).optional().describe('Footer "Company" column, at most 12 items. Not shown while footerColumns is set.'),
+    footerColumns: external_exports.array(
+      external_exports.object({
+        title: external_exports.record(external_exports.string(), external_exports.string()).optional().describe('Column heading per language, e.g. {"en": "Services", "zh-CN": "\u670D\u52A1"}. A language without a heading shows the links only.'),
+        items: external_exports.array(navItem).min(1).max(12).describe("Links in this column, at least 1, at most 12.")
+      })
+    ).max(4).optional().describe('Footer link columns, at most 4; replaces the single "Company" column. [] goes back to the "Company" column.'),
     cta: external_exports.object({
       show: external_exports.boolean().describe("false hides the button."),
       label: external_exports.record(external_exports.string(), external_exports.string()).optional().describe('Button text per language, e.g. {"en": "Free consultation", "zh-CN": "\u514D\u8D39\u54A8\u8BE2"}. Empty = the built-in "Request a Quote".'),
@@ -37851,10 +37857,11 @@ var updateNavigation = defineTool({
     version: versionArg
   },
   annotations: WRITE,
-  run: ({ header, footer, cta, footerProducts, version: version3 }, ctx) => ctx.client.patch("/settings/navigation", {
+  run: ({ header, footer, footerColumns, cta, footerProducts, version: version3 }, ctx) => ctx.client.patch("/settings/navigation", {
     value: {
       ...header && { header },
       ...footer && { footer },
+      ...footerColumns && { footerColumns: footerColumns.map((c) => ({ title: c.title ?? {}, items: c.items })) },
       ...cta && { cta: { show: cta.show, label: cta.label ?? {}, href: cta.href ?? "" } },
       ...footerProducts !== void 0 && { footerProducts }
     },

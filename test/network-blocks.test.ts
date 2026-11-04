@@ -139,4 +139,11 @@ describe('navigation', () => {
       body: { value: { cta: { show: true, label: { en: 'Free consultation' }, href: '' }, footerProducts: false } },
     });
   });
+
+  it('sends footer columns with an empty heading map when none is given', async () => {
+    const m = mockFetch({ json: {} });
+    const items = [{ kind: 'page', pageId: 'P1' }];
+    await runTool(updateNavigation, { footerColumns: [{ title: { en: 'Services' }, items }, { items }] }, context(m.fetch));
+    expect((m.calls[0]!.body as any).value).toEqual({ footerColumns: [{ title: { en: 'Services' }, items }, { title: {}, items }] });
+  });
 });
