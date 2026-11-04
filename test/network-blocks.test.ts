@@ -5,6 +5,7 @@ import { proxyFor } from '../src/proxy';
 import { runTool } from '../src/server';
 import { addPageBlock, createPage, removePageBlock, updatePageBlock } from '../src/tools/pages';
 import { updateNavigation } from '../src/tools/site';
+import { updateTheme } from '../src/tools/theme';
 import { config, context, mockFetch, state } from './helpers';
 
 const text = (r: { content: unknown[] }) => (r.content[0] as { text: string }).text;
@@ -145,5 +146,13 @@ describe('navigation', () => {
     const items = [{ kind: 'page', pageId: 'P1' }];
     await runTool(updateNavigation, { footerColumns: [{ title: { en: 'Services' }, items }, { items }] }, context(m.fetch));
     expect((m.calls[0]!.body as any).value).toEqual({ footerColumns: [{ title: { en: 'Services' }, items }, { title: {}, items }] });
+  });
+});
+
+describe('theme', () => {
+  it('sends the phone card columns', async () => {
+    const m = mockFetch({ json: {} });
+    await runTool(updateTheme, { mobileProductColumns: 2 }, context(m.fetch));
+    expect(m.calls[0]).toMatchObject({ method: 'PATCH', body: { theme: { mobileProductColumns: 2 } } });
   });
 });

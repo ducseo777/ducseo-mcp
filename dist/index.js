@@ -37892,13 +37892,16 @@ var listThemePresets = defineTool({
 });
 var updateTheme = defineTool({
   name: "update_theme",
-  title: "Change brand colors or fonts",
+  title: "Change brand colors, fonts or card layout",
   description: "Change parts of the theme; nested colors and fonts merge with the current values. Fonts must be from the current design's list (list_theme_presets). Low-contrast colors are corrected automatically and explained in `notes`; report those notes to the user. Custom CSS is not possible. To switch the design itself, use apply_theme_preset.",
   requires: ["settings.write"],
   input: {
     colors: external_exports.object({ primary: hex3.optional(), accent: hex3.optional(), surfaceDark: hex3.optional() }).optional().describe("primary: buttons, links, highlights (usually the logo color). accent: small highlights such as figures. surfaceDark: dark sections and footer."),
     fonts: external_exports.object({ heading: external_exports.string().optional(), body: external_exports.string().optional() }).optional().describe("Font ids from list_theme_presets."),
     productImageRatio: external_exports.enum(["1:1", "4:3"]).optional().describe("Shape of product images in cards and on product pages."),
+    mobileProductColumns: external_exports.union([external_exports.literal(1), external_exports.literal(2)]).optional().describe(
+      'Product and category cards per row on phones. 2 suits large catalogs (compact cards: image and name only); 1 shows key specs on every card. Needs the "mobile-columns" capability (see whoami); older sites ignore it.'
+    ),
     version: versionArg
   },
   annotations: WRITE,
