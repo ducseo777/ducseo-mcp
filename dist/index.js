@@ -36946,7 +36946,7 @@ var EMPTY_COMPLETION_RESULT = {
 };
 
 // package.json
-var version2 = "0.3.0";
+var version2 = "0.4.0";
 
 // src/site.ts
 var API_MAJOR = 1;
