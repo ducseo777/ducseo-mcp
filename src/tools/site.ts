@@ -74,10 +74,16 @@ export const updateSiteSettings = defineTool({
   run: ({ key, value, version }, ctx) => ctx.client.patch(`/settings/${key}`, { value, version }),
 });
 
+const linkRel = z
+  .enum(['nofollow', 'sponsored'])
+  .optional()
+  .describe('External links only: "sponsored" for paid or advertising links, "nofollow" for links the site does not vouch for. Leave out for normal links. Needs the "link-rel" capability (see whoami); older sites ignore it.');
+
 const navItem = z.object({
   kind: z.enum(['home', 'products', 'blog', 'contact', 'page', 'link']).describe('Built-in page, a custom page ("page" + pageId) or any URL ("link" + href).'),
   pageId: z.string().optional().describe('For kind "page": the page id from list_pages.'),
   href: z.string().optional().describe('For kind "link": a path starting with "/" or an https:// URL.'),
+  rel: linkRel,
   label: z.record(z.string(), z.string()).optional().describe('Label per language, e.g. {"en": "Factory"}. Empty uses the page title or built-in name; required for "link".'),
 });
 
@@ -107,6 +113,7 @@ export const updateNavigation = defineTool({
         show: z.boolean().describe('false hides the button.'),
         label: z.record(z.string(), z.string()).optional().describe('Button text per language, e.g. {"en": "Free consultation", "zh-CN": "免费咨询"}. Empty = the built-in "Request a Quote".'),
         href: z.string().optional().describe('Target: a site path such as "/pricing/" or an https:// URL. Empty = the contact page.'),
+        rel: linkRel,
       })
       .optional()
       .describe('The highlighted button at the right of the header. Service businesses usually want a label such as "Free consultation" instead of "Request a Quote".'),
@@ -120,7 +127,7 @@ export const updateNavigation = defineTool({
         ...(header && { header }),
         ...(footer && { footer }),
         ...(footerColumns && { footerColumns: footerColumns.map((c) => ({ title: c.title ?? {}, items: c.items })) }),
-        ...(cta && { cta: { show: cta.show, label: cta.label ?? {}, href: cta.href ?? '' } }),
+        ...(cta && { cta: { show: cta.show, label: cta.label ?? {}, href: cta.href ?? '', ...(cta.rel && { rel: cta.rel }) } }),
         ...(footerProducts !== undefined && { footerProducts }),
       },
       version,

@@ -9,6 +9,7 @@ import { upsertTranslation } from '../src/tools/translations';
 import { listMedia, readUploadFile, uploadMedia } from '../src/tools/media';
 import { slugify } from '../src/tools/define';
 import { importDesignMd } from '../src/tools/guidance';
+import { updateNavigation } from '../src/tools/site';
 import { context, mockFetch, state, whoami } from './helpers';
 
 const names = (scopes: string[], caps?: string[]) => selectTools(whoami(scopes, caps)).map((t) => t.name);
@@ -179,5 +180,31 @@ describe('import_design_md', () => {
 describe('slugify', () => {
   it('makes ASCII slugs from Latin text', () => {
     expect(slugify('Válvula de Bola & Accesorios (DN50)')).toBe('valvula-de-bola-and-accesorios-dn50');
+  });
+});
+
+describe('update_navigation', () => {
+  it('passes the rel of menu items and the header button', async () => {
+    const m = mockFetch({ json: { value: {}, version: 2 } });
+    await runTool(
+      updateNavigation,
+      {
+        header: [{ kind: 'link', href: 'https://partner.example/', rel: 'sponsored', label: { en: 'Partner' } }],
+        cta: { show: true, href: 'https://shop.example/', rel: 'nofollow' },
+      },
+      context(m.fetch),
+    );
+    expect(m.calls[0]!.body).toMatchObject({
+      value: {
+        header: [{ kind: 'link', href: 'https://partner.example/', rel: 'sponsored' }],
+        cta: { show: true, href: 'https://shop.example/', rel: 'nofollow' },
+      },
+    });
+  });
+
+  it('leaves rel out of the header button unless it is set', async () => {
+    const m = mockFetch({ json: { value: {}, version: 2 } });
+    await runTool(updateNavigation, { cta: { show: true, href: '/pricing/' } }, context(m.fetch));
+    expect(m.calls[0]!.body).toEqual({ value: { cta: { show: true, label: {}, href: '/pricing/' } } });
   });
 });
