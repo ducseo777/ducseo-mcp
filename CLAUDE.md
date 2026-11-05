@@ -4,7 +4,7 @@
 
 ## 1. 定位
 
-> 已实现（v0.4.0，对接 Agent API 1.5：单个区块的增改删、网络重试和代理、页头按钮和页脚产品栏、页脚多栏、手机端卡片列数、业务类型）。开源许可证 MIT。
+> 已实现（v0.5.0，对接 Agent API 1.6：单个区块的增改删、网络重试和代理、页头按钮和页脚产品栏、页脚多栏、手机端卡片列数、业务类型、外链 rel）。开源许可证 MIT。
 
 - 外贸公司在自己的 AI 工具（Claude Desktop、Claude Code、ChatGPT/Codex、Cursor、Grok Build 等）里添加这个 MCP，填上**站点地址**和 **API Key**（在网站后台 “AI Agent” 菜单创建），AI 就能管理网站内容。
 - 本项目只是 Ducseo 站点 **Agent API**（`/api/agent/v1/*`）的客户端：把 API 包装成 AI 好用的 MCP 工具。**不含业务逻辑、不直连数据库**，所有校验和权限以站点为准。
